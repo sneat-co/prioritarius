@@ -1,0 +1,44 @@
+/*
+ * Landing design tokens — neutral starter palette.
+ *
+ * TODO(branding): pick your product's colours here. Keep each Sneat product
+ * visually distinct (e.g. ReQuoter = teal, Surpriseless = indigo+amber).
+ * Everything else maps onto these tokens via global.css, so this file is the
+ * single place to re-theme.
+ */
+:root {
+  /* Brand */
+  --brand-primary: #4f46e5;        /* primary — CTAs, accents */
+  --brand-primary-strong: #4338ca; /* hover / shade */
+  --brand-accent: #a5b4fc;         /* light accent */
+  --brand-ink: #14183a;            /* primary text + footer */
+  --brand-muted: #5b6480;          /* muted text */
+
+  /* Chrome */
+  --brand-bg: #f8f9fe;            /* page background */
+  --brand-surface: #ffffff;       /* cards */
+  --brand-soft: #f3f4fd;          /* alt section */
+  --brand-hero-1: #eef1ff;        /* hero gradient top */
+  --brand-hero-2: #dfe4ff;        /* hero gradient bottom */
+  --brand-border: #e6e8f5;
+  --brand-danger: #d64545;
+
+  /* Status pills */
+  --brand-live-bg: #e0e7ff;
+  --brand-live-ink: #3730a3;
+  --brand-soon-bg: #eef0f6;
+  --brand-soon-ink: #5b6480;
+
+  /* Type & shape */
+  /* Montserrat ships latin + cyrillic, so one brand font covers both locales
+     this landing publishes. It replaced Poppins, which has no Cyrillic at all
+     (latin / latin-ext / devanagari only) and left every Russian page rendering
+     in a system fallback while English got the brand font.
+     Check the subsets at fonts.google.com before swapping this — the failure is
+     silent, and visible only in the language you don't read. The @font-face
+     comes from the <link> in layouts/BaseLayout.astro. */
+  --brand-font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --brand-radius: 16px;
+  --brand-radius-pill: 999px;
+  --brand-shadow: 0 10px 26px rgba(20, 24, 58, 0.12);
+}

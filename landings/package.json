@@ -1,0 +1,26 @@
+{
+  "name": "template-landing",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro check && astro build && pnpm run build:app && node scripts/assemble-app.mjs",
+    "build:landing": "astro check && astro build",
+    "build:app": "cd .. && npx nx build template-app --base-href=/",
+    "check": "astro check",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.2.0",
+    "@sneat/astro": "^0.2.1",
+    "astro": "^7.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "6.0.3",
+    "wrangler": "4.120.0"
+  }
+}

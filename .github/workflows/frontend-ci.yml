@@ -1,0 +1,32 @@
+name: Frontend CI
+
+# Nx/Angular CI for the frontend workspace at the repo root (apps/, landings/,
+# libs/ — everything except backend/, which has its own separate Go CI in
+# backend-ci.yml). This is a distinct file rather than a job folded into
+# backend-ci.yml because the two stacks have unrelated toolchains, triggers,
+# and failure domains: keeping them separate lets each show up independently
+# and by name in the PR checks list, and keeps a change to one from forcing a
+# run (or a rerun) of the other.
+#
+# Until this workflow existed, nothing checked the frontend on pull_request:
+# a green PR never meant the frontend built.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nx:
+    name: lint · test · build
+    uses: sneat-co/cicd/.github/workflows/nx-ci.yml@main
+    with:
+      working-directory: "."
+      targets: "lint test build"

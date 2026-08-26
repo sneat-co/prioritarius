@@ -1,0 +1,119 @@
+overrides:
+  # zone.js is already fully dropped here (no devDependency, no resolution
+  # anywhere in the lockfile). This override is defense-in-depth for the
+  # canonical extension template: @angular/core, @ionic/angular, and
+  # @analogjs/vitest-angular all still declare it as an OPTIONAL peer, and
+  # pnpm's default peer-resolution eagerly satisfies optional peers whenever
+  # a compatible version is resolvable. `-` tells pnpm to never resolve it,
+  # so a future extension built from this template inherits the ban.
+  'zone.js': '-'
+  # @angular/fire@20.0.1's schematics (ng-add, unused at build/test time) still
+  # drag in @angular-devkit/core@20.3.32 -> @angular-devkit/schematics@20.3.32,
+  # a stray old version pair that fractures into two physical instances and
+  # pulls a mismatched chokidar peer. Collapsing @angular-devkit/core to
+  # whatever @angular/build itself depends on removes the fracture instead of
+  # just papering over the chokidar peer warning.
+  '@angular-devkit/core': 22.1.5 # keep in sync with the @angular/build devDependency pin
+  '@angular-devkit/schematics': 22.1.5 # keep in sync with the @angular/build devDependency pin
+  '@angular/platform-server': 22.1.3
+  '@angular/platform-browser-dynamic': 22.1.3
+  '@sneat/api-firebase-auth': 0.26.4
+  '@sneat/api-public': 0.26.4
+  '@sneat/app-auth': 0.26.4
+  '@sneat/app-ionic': 0.26.4
+  '@sneat/app-public': 0.26.4
+  '@sneat/core-public': 0.26.4
+  '@sneat/extension-calendarius-internal': 0.26.4
+  '@sneat/extension-calendarius-shared': 0.26.4
+  '@sneat/space-nav-ionic': 0.26.4
+  '@sneat/space-nav-router': 0.26.4
+  # @sneat/* framework libraries — all on the version this app depends on.
+  '@sneat/api': 0.26.4
+  '@sneat/app': 0.26.4
+  '@sneat/auth-core': 0.26.4
+  '@sneat/auth-models': 0.26.4
+  '@sneat/auth-ui': 0.26.4
+  '@sneat/components': 0.26.4
+  '@sneat/core': 0.26.4
+  '@sneat/data': 0.26.4
+  '@sneat/datagrid': 0.26.4
+  '@sneat/dto': 0.26.4
+  '@sneat/grid': 0.26.4
+  '@sneat/logging': 0.26.4
+  '@sneat/space-components': 0.26.4
+  '@sneat/space-models': 0.26.4
+  '@sneat/space-services': 0.26.4
+  '@sneat/ui': 0.26.4
+  '@sneat/wizard': 0.26.4
+  # @angular/* runtime packages — the older extension peers pull 21.2.9, which
+  # fractures HttpParams and friends against this app's 21.2.19. Also collapses
+  # the second @angular/core variant that @angular/fire@20 ->
+  # @angular/platform-browser-dynamic@20 -> @angular/compiler@20 used to drag in.
+  '@angular/animations': 22.1.3
+  '@angular/common': 22.1.3
+  '@angular/compiler': 22.1.3
+  '@angular/core': 22.1.3
+  '@angular/forms': 22.1.3
+  '@angular/platform-browser': 22.1.3
+  '@angular/router': 22.1.3
+  # Ionic fractures the same way, and less obviously: with two Ionic versions in
+  # the tree pnpm instantiates @sneat/space-services TWICE at the SAME 0.24.0
+  # version — same version, different peer resolution — and ModuleSpaceItemService
+  # from one instance is not assignable to the other. Deduping the version alone
+  # is not enough; the peers have to agree too.
+  '@ionic/angular': 9.0.0
+  '@ionic/core': 9.0.0
+  # Dependabot CVE fixes forced onto transitive deps (firebase@12 / dev tooling).
+  # `>=` floors so pnpm resolves the highest compatible patched version rather
+  # than pinning. Prune an entry once the direct dep that pulls the vulnerable
+  # range is itself bumped past it. NOTE: esbuild + piscina are deliberately NOT
+  # overridden — they are pinned by @angular/build and forcing them regresses the
+  # Angular compiler build; they clear when Angular itself is bumped (blocked on a
+  # coordinated @angular/* + @ionic/angular upgrade — 21.2.17 breaks Ionic 8.8.6's
+  # proxy re-exports with NG3004).
+  '@babel/core': '>=7.29.6'
+  '@vitest/ui': '>=4.1.0'
+  form-data: '>=4.0.6'
+  vite: '>=7.3.5'
+  vitest: '>=4.1.0'
+  http-proxy-middleware: '>=3.0.7'
+  js-yaml: '>=4.2.0'
+  postcss: '>=8.5.10'
+  qs: '>=6.15.2'
+  tmp: '>=0.2.7'
+  undici: '>=7.28.0'
+  uuid: '>=11.1.1'
+  webpack-dev-server: '>=5.2.5'
+# Bound workspace-member discovery to the real source packages (root + libs).
+# Without this, pnpm globs every package.json — including dist/ build copies —
+# so `pnpm install` after a build fails with ERR_PNPM_OUTDATED_LOCKFILE.
+# landings/ is its own separate workspace and is intentionally excluded.
+packages:
+  - 'apps/*'
+  - 'libs/**'
+allowBuilds:
+  '@firebase/util': true
+  '@parcel/watcher': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  less: true
+  lmdb: true
+  msgpackr-extract: true
+  nx: true
+  protobufjs: true
+  unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@sneat/*'
+onlyBuiltDependencies:
+  - '@firebase/util'
+  - '@parcel/watcher'
+  - '@swc/core'
+  - core-js
+  - esbuild
+  - less
+  - lmdb
+  - msgpackr-extract
+  - nx
+  - protobufjs
+  - unrs-resolver

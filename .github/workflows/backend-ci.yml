@@ -1,0 +1,36 @@
+name: Backend CI
+
+# Go CI for the dalgo-only domain module at backend/ (module
+# github.com/sneat-co/template/backend — customize.sh renames this along with
+# backend/go.mod when you run it).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - .github/workflows/backend-ci.yml
+  pull_request:
+    paths:
+      - backend/**
+      - .github/workflows/backend-ci.yml
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Backend runs strongo's Standard Go CI (lint · test · build) AND auto-tags the
+  # next backend/vX.Y.Z on push to main (conventional-commit version bump).
+  backend:
+    uses: strongo/cicd/.github/workflows/workflow.yml@main
+    permissions:
+      contents: write
+    secrets:
+      GH_TOKEN: ${{ secrets.SNEAT_CI_READWRITE_TOKEN }}
+    with:
+      working_directory: backend
+      GOPRIVATE: github.com/sneat-co
+      goprivate_git_host: github.com/sneat-co
+      tag_prefix: backend/v

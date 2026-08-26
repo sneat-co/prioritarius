@@ -1,0 +1,102 @@
+---
+// Google Analytics 4 with Consent Mode v2, geo-gated for the EU/EEA + UK.
+//
+// - GA fires immediately worldwide. In the EEA/UK, analytics storage defaults to
+//   "denied" (cookieless pings only) until the visitor accepts the banner — the
+//   region default is resolved by Google via the `region` parameter.
+// - The banner is shown ONLY to EEA/UK visitors, decided client-side from
+//   Cloudflare's /cdn-cgi/trace (free on any CF-proxied domain; no Worker change).
+// - Google Signals + ad personalization are disabled, so the data is never used
+//   for advertising (backs the banner's "never for ads / not sold" promise; also
+//   flip GA Admin > Data Sharing Settings off for the property).
+// - The visitor's choice is persisted in localStorage.
+//
+// Drop <GoogleAnalytics id="G-XXXXXXXX" privacyHref="/privacy/" /> into a <head>.
+// privacyHref is optional — omit it on sites without a privacy page.
+interface Props {
+  /** GA4 Measurement ID, e.g. "G-XXXXXXXX". */
+  id: string;
+  /** Optional privacy-page URL; when set, a "Privacy" link shows in the banner. */
+  privacyHref?: string;
+}
+const { id, privacyHref = "" } = Astro.props;
+---
+<script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${id}`}></script>
+<script is:inline define:vars={{ GA_ID: id, PRIVACY_HREF: privacyHref }}>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag("js", new Date());
+
+  // EU/EEA + UK: deny analytics storage until consent; granted everywhere else.
+  var GATED = ["AT","BE","BG","HR","CY","CZ","DK","EE","FI","FR","DE","GR","HU","IE","IT","LV","LT","LU","MT","NL","PL","PT","RO","SK","SI","ES","SE","IS","LI","NO","GB"];
+  gtag("consent", "default", { analytics_storage: "granted" });
+  gtag("consent", "default", { analytics_storage: "denied", region: GATED, wait_for_update: 500 });
+
+  // Measure only: no Google Signals, no ad personalization -> never used for ads.
+  gtag("config", GA_ID, {
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  });
+
+  try {
+    if (localStorage.getItem("ga-consent") === "granted") {
+      gtag("consent", "update", { analytics_storage: "granted" });
+    }
+  } catch (e) {}
+
+  function gaSetConsent(v) {
+    try { localStorage.setItem("ga-consent", v); } catch (e) {}
+    gtag("consent", "update", { analytics_storage: v });
+    var b = document.getElementById("ga-consent-banner");
+    if (b) b.remove();
+  }
+
+  function gaShowBanner() {
+    if (document.getElementById("ga-consent-banner")) return;
+    var wrap = document.createElement("div");
+    wrap.id = "ga-consent-banner";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-label", "Cookie consent");
+    var privacy = PRIVACY_HREF
+      ? '<a class="ga-consent-privacy" href="' + PRIVACY_HREF + '">Privacy</a>'
+      : "";
+    wrap.innerHTML =
+      "<p>Please accept cookies to help us understand our usage metrics. " +
+      "We use them only to measure traffic — never for ads or sold to anyone. " +
+      "Analytics stays off until you accept.</p>" +
+      '<div class="ga-consent-actions">' +
+      privacy +
+      '<button type="button" id="ga-decline">Decline</button>' +
+      '<button type="button" id="ga-accept">Accept</button>' +
+      "</div>";
+    document.body.appendChild(wrap);
+    document.getElementById("ga-accept").addEventListener("click", function () { gaSetConsent("granted"); });
+    document.getElementById("ga-decline").addEventListener("click", function () { gaSetConsent("denied"); });
+  }
+
+  // Show the banner only to EEA/UK visitors who have not chosen yet.
+  (function () {
+    try { if (localStorage.getItem("ga-consent")) return; } catch (e) {}
+    fetch("/cdn-cgi/trace").then(function (r) { return r.text(); }).then(function (t) {
+      var m = /(?:^|\n)loc=([A-Z]{2})/.exec(t);
+      if (m && GATED.indexOf(m[1]) !== -1) gaShowBanner();
+    }).catch(function () {});
+  })();
+</script>
+<style is:inline>
+  #ga-consent-banner {
+    position: fixed; left: 1rem; right: 1rem; bottom: 1rem; z-index: 2147483647;
+    max-width: 520px; margin: 0 auto; background: #1c1f26; color: #e6e6e6;
+    border: 1px solid #2c3038; border-radius: 12px; padding: 1rem 1.1rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  #ga-consent-banner p { margin: 0 0 .7rem; }
+  #ga-consent-banner .ga-consent-actions { display: flex; gap: .5rem; justify-content: flex-end; align-items: center; }
+  #ga-consent-banner .ga-consent-privacy { margin-right: auto; color: #9ab7ff; font-size: 13px; }
+  #ga-consent-banner button {
+    cursor: pointer; border-radius: 8px; padding: .4rem .9rem; font-size: 14px;
+    border: 1px solid #3a3f4b; background: #262a32; color: #e6e6e6;
+  }
+  #ga-consent-banner button#ga-accept { background: #2f6f43; border-color: #2f6f43; color: #fff; }
+</style>

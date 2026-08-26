@@ -1,0 +1,17 @@
+---
+/**
+ * English home — the bare root, and the site's canonical front door.
+ *
+ * English is the default locale, so its home lives at `/` rather than `/en/`
+ * (worker.js 301s `/en/` here). Every other page, English included, keeps its
+ * locale prefix: /en/privacy/, /ru/privacy/.
+ *
+ * Structure + words: ../components/Home.astro and ../i18n/copy/en.ts.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Home from "../components/Home.astro";
+---
+
+<BaseLayout locale="en">
+  <Home locale="en" />
+</BaseLayout>

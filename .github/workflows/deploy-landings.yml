@@ -1,0 +1,49 @@
+name: Deploy landings + app (Cloudflare)
+
+# Deploys the template's product origin (Astro landing + root-mounted Angular app assembled into one dist/) to
+# Cloudflare (Workers static assets) via the shared reusable cf-deploy
+# workflow (sneat-co/cicd), so every Sneat site deploys the same way and every
+# deploy is visible/auditable in GitHub Actions.
+#
+# Auth is org-level: CLOUDFLARE_API_TOKEN org secret + CLOUDFLARE_ACCOUNT_ID
+# org variable (an identifier, not a secret). No per-repo secrets needed.
+#
+# Deploys on push to main when the app, landing or extension libs change, plus
+# manual dispatch for on-demand redeploys.
+#
+# This repo deploys itself as its own live demo (ext-template.sneat.dev), under
+# wrangler.demo.jsonc — a config separate from the fork-facing wrangler.jsonc,
+# so the demo's own worker name never collides with wrangler.jsonc's `name:
+# "template"` placeholder that customize.sh renames per fork. customize.sh
+# strips the `wrangler-config` line below (and deletes wrangler.demo.jsonc)
+# during scaffolding, so a fork deploys via the plain default wrangler.jsonc
+# instead and previews on workers.dev until it sets up its own apex.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - landings/**
+      - apps/**
+      - libs/**
+      - .github/workflows/deploy-landings.yml
+
+concurrency:
+  group: deploy-landings-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: sneat-co/cicd/.github/workflows/cf-deploy.yml@main
+    with:
+      working-directory: landings
+      # PUBLIC_SITE_URL feeds astro.config's canonical/OG/sitemap host. This repo
+      # sets the repo variable to its demo apex (ext-template.sneat.dev); forks
+      # don't inherit repo variables, so they fall back to the example.com
+      # placeholder until they set their own.
+      build-command: PUBLIC_SITE_URL='${{ vars.PUBLIC_SITE_URL }}' pnpm build
+      wrangler-config: wrangler.demo.jsonc
+      cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      extra-install-directory: "."
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

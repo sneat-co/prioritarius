@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# TODO(hosting): set to your real apex domain.
+Sitemap: https://example.com/sitemap-index.xml

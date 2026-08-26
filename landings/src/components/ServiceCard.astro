@@ -1,0 +1,72 @@
+---
+interface Props {
+  icon: string;
+  title: string;
+  examples: string;
+  status?: "live" | "soon";
+  href?: string;
+  cta?: string;
+}
+
+const { icon, title, examples, status = "soon", href, cta = "Get started" } =
+  Astro.props;
+const isLive = status === "live";
+---
+
+<article class="service-card">
+  <div class="top">
+    <span class="icon" aria-hidden="true">{icon}</span>
+    <span class={`pill ${isLive ? "pill-live" : "pill-soon"}`}>
+      {isLive ? "Live now" : "Coming soon"}
+    </span>
+  </div>
+  <h3>{title}</h3>
+  <p class="examples">{examples}</p>
+  {isLive && href ? (
+    <a class="btn btn-primary cta" href={href}>{cta} →</a>
+  ) : (
+    <span class="cta-soon">On the roadmap</span>
+  )}
+</article>
+
+<style>
+  .service-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--brand-radius);
+    padding: var(--space-3);
+    box-shadow: var(--shadow);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1);
+  }
+  .icon {
+    font-size: 2.2rem;
+  }
+  h3 {
+    font-size: 1.2rem;
+    margin: 0.6rem 0 0.3rem;
+  }
+  .examples {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    margin: 0 0 0.9rem;
+  }
+  /* margin-top:auto pins the CTA row to the bottom so cards align */
+  .cta {
+    margin-top: auto;
+    align-self: flex-start;
+  }
+  .cta-soon {
+    margin-top: auto;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+</style>

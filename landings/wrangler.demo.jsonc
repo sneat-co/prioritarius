@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // This TEMPLATE REPO's own demo deploy config — not for forks. It exists so
+  // sneat-ext-template can self-host a live example at ext-template.sneat.dev
+  // under its own worker name, WITHOUT touching wrangler.jsonc's `name:
+  // "template"` placeholder (customize.sh's existing rename rule needs that
+  // value to stay exactly "template" so it can rewrite it to a fork's real
+  // extension id — see wrangler.jsonc and customize.sh).
+  //
+  // customize.sh deletes this file (and the deploy-landings.yml line that
+  // points at it) during scaffolding, so a fork never sees it.
+  "name": "ext-template-sneat-dev",
+  "compatibility_date": "2026-06-23",
+  "workers_dev": true,
+  "main": "worker.js",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none"
+  }
+  // No `routes`/custom_domain block: attaching ext-template.sneat.dev needs a
+  // Zone:DNS:Edit-scoped token the CI deploy token doesn't have (see
+  // docs/HOSTING.md), so the domain is attached once, out-of-band, via the
+  // Cloudflare dashboard (or a DNS-scoped token) — declaring it here would risk
+  // a routine `wrangler deploy` failing outright if the CI token can't
+  // reconcile it.
+}

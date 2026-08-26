@@ -1,0 +1,22 @@
+---
+/**
+ * Legal page body (privacy + terms) — a thin wrapper over @sneat/astro's Legal
+ * component, wiring this landing's i18n instance. The copy still comes from
+ * i18n/copy/<locale>.ts (privacyPage / termsPage). Kept as a local wrapper so
+ * pages import '../components/Legal.astro' unchanged.
+ *
+ * CLAIMS DISCIPLINE — see LegalPageCopy in i18n/copy/types.ts. Everything here
+ * must be true and checkable in every language you ship.
+ */
+import SharedLegal from '@sneat/astro/components/Legal.astro';
+import { i18n, type LangCode } from '../i18n/languages';
+import type { LegalPageCopy } from '../i18n/copy/types';
+
+interface Props {
+  locale: LangCode;
+  copy: LegalPageCopy;
+}
+const { locale, copy } = Astro.props;
+---
+
+<SharedLegal i18n={i18n} locale={locale} copy={copy} />

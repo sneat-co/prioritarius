@@ -1,0 +1,196 @@
+---
+/**
+ * The home page body. Structure only; words come from i18n/copy/<locale>.ts.
+ *
+ * This is the reason the copy layer exists: the prose here is threaded through
+ * the markup, so forking this file per locale would mean maintaining N copies
+ * of the layout to change N copies of the words.
+ */
+import ServiceCard from "./ServiceCard.astro";
+import { localeHref, type LangCode } from "../i18n/languages";
+import { getCopy } from "../i18n/copy";
+
+interface Props {
+  locale: LangCode;
+}
+const { locale } = Astro.props;
+const copy = getCopy(locale);
+
+const home = localeHref(locale, "/");
+---
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>
+      {copy.site.headline}{" "}
+      <span class="accent">{copy.site.headlineAccent}</span>
+    </h1>
+    <p class="lede">{copy.site.lede}</p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="/login">{copy.site.ctaPrimary}</a>
+      <a class="btn btn-secondary" href={`${home}#how-it-works`}>
+        {copy.site.ctaSecondary}
+      </a>
+    </div>
+
+    <p class="microcopy">{copy.site.microcopy}</p>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works" class="section">
+  <div class="container">
+    <div class="text-center section-head">
+      <p class="eyebrow">{copy.howItWorks.eyebrow}</p>
+      <h2>{copy.howItWorks.title}</h2>
+    </div>
+    <div class="grid grid-4">
+      {
+        copy.howItWorks.steps.map((s) => (
+          <div class="step">
+            <span class="step-icon" aria-hidden="true">
+              {s.icon}
+            </span>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="section soft">
+  <div class="container">
+    <div class="text-center section-head">
+      <p class="eyebrow">{copy.features.eyebrow}</p>
+      <h2>{copy.features.title}</h2>
+    </div>
+
+    <div class="grid grid-2 featured">
+      {
+        copy.features.items.map((f) => (
+          <ServiceCard
+            icon={f.icon}
+            title={f.title}
+            examples={f.examples}
+            status={f.status}
+            href={f.href}
+            cta={f.cta}
+          />
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Why -->
+<section id="why" class="section">
+  <div class="container">
+    <div class="text-center section-head">
+      <p class="eyebrow">{copy.why.eyebrow}</p>
+      <h2>{copy.why.title}</h2>
+    </div>
+    <div class="grid grid-3 why">
+      {
+        copy.why.tiles.map((w) => (
+          <div class="why-tile">
+            <span aria-hidden="true">{w.icon}</span>
+            <h3>{w.title}</h3>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="section cta-band">
+  <div class="container text-center">
+    <h2>{copy.ctaBand.title}</h2>
+    <p>{copy.ctaBand.text}</p>
+    <a class="btn btn-primary" href="/login">{copy.ctaBand.cta}</a>
+  </div>
+</section>
+
+<style>
+  .hero {
+    background: linear-gradient(
+      135deg,
+      var(--brand-hero-1) 0%,
+      var(--brand-hero-2) 100%
+    );
+    padding-block: var(--space-5);
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+  }
+  .hero .accent {
+    color: var(--color-accent);
+  }
+  .lede {
+    font-size: 1.15rem;
+    max-width: 52ch;
+    margin-inline: auto;
+    color: var(--brand-ink);
+    opacity: 0.82;
+  }
+  .cta-row {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--space-3);
+  }
+  .microcopy {
+    margin-top: var(--space-2);
+    margin-bottom: 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+
+  .step {
+    text-align: center;
+    padding: var(--space-2);
+  }
+  .step-icon {
+    font-size: 2rem;
+    display: block;
+  }
+  .step h3 {
+    font-size: 1.1rem;
+    margin-top: 0.4rem;
+  }
+
+  .featured {
+    align-items: stretch;
+    max-width: 880px;
+    margin-inline: auto;
+  }
+
+  .why-tile {
+    background: var(--brand-hero-1);
+    border-radius: var(--brand-radius);
+    padding: var(--space-3);
+    text-align: center;
+  }
+  .why-tile span {
+    font-size: 1.6rem;
+  }
+  .why-tile h3 {
+    font-size: 1rem;
+    margin: 0.4rem 0 0;
+  }
+
+  .cta-band {
+    background: var(--brand-soft);
+    text-align: center;
+  }
+  .cta-band .btn {
+    margin-top: var(--space-1);
+  }
+</style>

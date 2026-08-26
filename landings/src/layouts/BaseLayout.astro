@@ -1,0 +1,69 @@
+---
+/**
+ * Thin wrapper over @sneat/astro's BaseLayout: it wires this landing's fonts,
+ * tokens and (optional) consent-banner analytics, and injects the site identity
+ * + per-locale chrome. The shared layout renders <head> (SeoHead: canonical,
+ * hreflang cluster, OG/Twitter, JSON-LD), the Header, your page, and the Footer.
+ *
+ * Pages keep importing THIS file, so they don't change when the shared package
+ * updates. Fonts and analytics stay here (a shared layout can't know your faces,
+ * and a face without your locales' scripts is a silent, locale-specific bug).
+ */
+import '../styles/tokens.css';
+import '../styles/global.css';
+import SharedLayout from '@sneat/astro/layouts/BaseLayout.astro';
+import GoogleAnalytics from '../components/GoogleAnalytics.astro';
+import { i18n, localeHref, type LangCode } from '../i18n/languages';
+import { siteMeta, getChrome } from '../i18n/site';
+import { getCopy } from '../i18n/copy';
+
+// TODO(copy): set your GA4 Measurement ID. Look it up (or add a property) in
+// sneat-ops/data/ga-properties.json, keyed by this landing's domain. Inert until
+// you replace the placeholder — no tag loads and nothing is recorded.
+const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX';
+
+interface Props {
+  /** Required: every page declares the language it is written in. */
+  locale: LangCode;
+  title?: string;
+  description?: string;
+  /** Path-relative OG image, e.g. "/og.png". */
+  image?: string;
+  /** Float the header over a photographic hero. */
+  transparentNav?: boolean;
+}
+
+const { locale, image = '/og.png', transparentNav = false } = Astro.props;
+const copy = getCopy(locale);
+const { title = copy.site.seoTitle, description = copy.site.seoDescription } = Astro.props;
+---
+
+<SharedLayout
+  i18n={i18n}
+  site={siteMeta}
+  chrome={getChrome(locale)}
+  locale={locale}
+  title={title}
+  description={description}
+  siteDescription={copy.site.seoDescription}
+  ogImage={image}
+  transparentNav={transparentNav}
+  langLabel={copy.langLabel}
+>
+  <Fragment slot="head">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    {/* Montserrat ships Latin + Cyrillic; check subsets before swapping (a face
+        without a script you ship fails silently in that locale only). */}
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    {
+      GA_MEASUREMENT_ID !== 'G-XXXXXXXXXX' && (
+        <GoogleAnalytics id={GA_MEASUREMENT_ID} privacyHref={localeHref(locale, '/privacy')} />
+      )
+    }
+  </Fragment>
+  <slot />
+</SharedLayout>
