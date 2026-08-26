@@ -53,10 +53,11 @@ const { title = copy.site.seoTitle, description = copy.site.seoDescription } = A
   <Fragment slot="head">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    {/* Montserrat ships Latin + Cyrillic; check subsets before swapping (a face
-        without a script you ship fails silently in that locale only). */}
+    {/* Literata + IBM Plex Sans + IBM Plex Mono all ship Latin + Cyrillic;
+        check subsets before swapping (a face without a script you ship fails
+        silently in that locale only). */}
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,500;0,7..72,600;0,7..72,700;1,7..72,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap"
       rel="stylesheet"
     />
     {

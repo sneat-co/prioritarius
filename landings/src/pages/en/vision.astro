@@ -1,0 +1,15 @@
+---
+/**
+ * Vision, English. Structure: ../../components/Vision.astro.
+ * Words: ../../i18n/copy/en.ts (visionPage).
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Vision from '../../components/Vision.astro';
+import { getCopy } from '../../i18n/copy';
+
+const c = getCopy('en').visionPage;
+---
+
+<BaseLayout locale="en" title={c.seoTitle} description={c.seoDescription}>
+  <Vision locale="en" />
+</BaseLayout>

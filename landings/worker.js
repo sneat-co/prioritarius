@@ -60,7 +60,7 @@ export default {
     // Without this they'd miss every asset and fall through to the app shell —
     // answering 200 with an Angular bundle where a human expected a policy.
     // Send them to the default locale's copy.
-    const LEGAL = ['/privacy', '/terms'];
+    const LEGAL = ['/privacy', '/terms', '/vision'];
     const bare = p.length > 1 ? p.replace(/\/+$/, '') : p;
     if (LEGAL.includes(bare)) {
       url.pathname = `/en${bare}`;

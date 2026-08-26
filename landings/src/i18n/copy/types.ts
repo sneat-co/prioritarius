@@ -7,41 +7,22 @@
  * copies of the layout to change N copies of the words, and every structural
  * fix has to land N times. So: one template, N copy modules.
  *
- * TODO(copy): this ships as a generic skeleton. Replace the strings in en.ts
- * and ru.ts with your product's real messaging — but keep the SHAPE. Adding a
- * field here is what forces every locale to supply it; the type-checker is the
- * only thing standing between you and a half-translated page.
- *
- * Deleting a section you don't need is fine — remove it from this interface and
- * every locale module at the same time, and `astro check` will confirm you got
- * them all.
+ * Keep en.ts and ru.ts in step: the type-checker makes a missing string an
+ * error, but it cannot tell you a translation has gone stale. If you change a
+ * claim in one locale, change it in all of them, same commit.
  */
 
 /** A nav/footer link. `href` is locale-independent; pass it through localeHref. */
 export interface LinkCopy {
   label: string;
-  /** Either a page route ('/privacy') or a same-page anchor ('#features'). */
+  /** Either a page route ('/privacy') or a same-page anchor ('#how-it-works'). */
   href: string;
 }
 
+/** One step of the numbered how-it-works sequence (order carries meaning). */
 export interface StepCopy {
-  /** Emoji live in the copy because a locale may want a different one. */
-  icon: string;
   title: string;
   text: string;
-}
-
-export interface FeatureCopy {
-  icon: string;
-  title: string;
-  /** The sentence under the title. */
-  examples: string;
-  /** 'live' renders the CTA; 'soon' renders a "coming soon" pill instead. */
-  status: 'live' | 'soon';
-  /** Only read when status is 'live'. */
-  href?: string;
-  /** Only read when status is 'live'. */
-  cta?: string;
 }
 
 /**
@@ -66,12 +47,19 @@ export interface LegalPageCopy {
   back: string;
 }
 
+/** An explanation card the river demo shows when a node is selected. */
+export interface DemoCardCopy {
+  title: string;
+  /** Rendered as separate lines; the first line is the strongest claim. */
+  lines: string[];
+}
+
 export interface Copy {
   /** Hero + shared CTA furniture. */
   site: {
     /** Wordmark. Usually NOT translated — a brand name is not prose. */
     brand: string;
-    /** Optional TLD span rendered in the accent colour, e.g. '.app'. */
+    /** Optional TLD span rendered in the accent colour, e.g. '.com'. */
     tld?: string;
     /** Split so the accent span can wrap only the second half. */
     headline: string;
@@ -83,7 +71,6 @@ export interface Copy {
      * Header button on narrow screens. Required, not optional: English verbs
      * are unusually short and every other locale will be longer, so the header
      * can't be tuned per language — it asks each locale for a short form.
-     * Keep the verb, drop the object: "Sign in" / «Войти».
      */
     navCtaShort: string;
     ctaPrimary: string;
@@ -97,11 +84,45 @@ export interface Copy {
 
   nav: LinkCopy[];
 
+  /**
+   * The interactive river demo — the page's signature. Node geometry lives in
+   * RiverDemo.astro; every human-readable string lives here so both locales
+   * explain the same sample portfolio.
+   */
+  demo: {
+    eyebrow: string;
+    title: string;
+    /** The standing card shown before any node is selected. */
+    hint: string;
+    reset: string;
+    legend: {
+      goal: string;
+      project: string;
+      work: string;
+      blocks: string;
+      exploring: string;
+    };
+    /** Node id -> label. Keep labels short; they render inside fixed nodes. */
+    labels: Record<string, string>;
+    /** Node id -> effort figure (mono chip), e.g. '3d' / '3д'. */
+    est: Record<string, string>;
+    /** Node id -> explanation card. Not every node needs one. */
+    cards: Record<string, DemoCardCopy>;
+    /** Screen-reader instructions for the interactive SVG. */
+    srInstructions: string;
+  };
+
+  problem: {
+    eyebrow: string;
+    title: string;
+    paragraphs: string[];
+    tree: { title: string; text: string };
+    graph: { title: string; text: string };
+  };
+
   howItWorks: { eyebrow: string; title: string; steps: StepCopy[] };
 
-  features: { eyebrow: string; title: string; items: FeatureCopy[] };
-
-  why: { eyebrow: string; title: string; tiles: { icon: string; title: string }[] };
+  principles: { eyebrow: string; title: string; quotes: string[] };
 
   ctaBand: { title: string; text: string; cta: string };
 
@@ -116,10 +137,18 @@ export interface Copy {
     legal: { before: string; link: string; after: string };
   };
 
-/**
- * A plain legal page: /{locale}/privacy/ and /{locale}/terms/ share this shape
- * and render through the same component.
- */
+  /** /{locale}/vision/ — the fuller product story. */
+  visionPage: {
+    seoTitle: string;
+    seoDescription: string;
+    eyebrow: string;
+    title: string;
+    lede: string;
+    sections: { title: string; paragraphs: string[] }[];
+    cta: { title: string; text: string; button: string };
+    back: string;
+  };
+
   /** /{locale}/privacy/ */
   privacyPage: LegalPageCopy;
 

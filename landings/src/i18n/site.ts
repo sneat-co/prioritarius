@@ -13,7 +13,7 @@ import type { LangCode } from './languages';
 export const siteMeta: SiteMeta = {
   name: getCopy('en').site.brand,
   // Keep in step with astro.config `site:`.
-  url: 'https://example.com',
+  url: 'https://prioritarius.com',
   // Fallback only. SiteMeta is locale-independent, so this line can only ever be
   // one language; BaseLayout passes the page locale's own seoDescription as
   // `siteDescription`, and that is what reaches the JSON-LD graph.

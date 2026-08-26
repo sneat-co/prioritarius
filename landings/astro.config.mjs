@@ -10,7 +10,7 @@ import { createSitemapConfig } from "@sneat/astro/scripts/sitemap.mjs";
 // (ext-template.sneat.dev) sets it via a repo variable, so the committed default
 // stays an obvious placeholder that forks replace. Forks either set the string
 // below or their own PUBLIC_SITE_URL.
-const SITE_URL = process.env.PUBLIC_SITE_URL || "https://example.com";
+const SITE_URL = process.env.PUBLIC_SITE_URL || "https://prioritarius.com";
 
 // https://astro.build/config
 export default defineConfig({

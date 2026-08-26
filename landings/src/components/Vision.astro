@@ -1,0 +1,86 @@
+---
+/**
+ * The /vision page body — the fuller product story, distilled from the
+ * Prioritarius Idea spec. Structure only; words come from i18n/copy.
+ */
+import { localeHref, type LangCode } from '../i18n/languages';
+import { getCopy } from '../i18n/copy';
+
+interface Props {
+  locale: LangCode;
+}
+const { locale } = Astro.props;
+const copy = getCopy(locale);
+const v = copy.visionPage;
+---
+
+<article class="vision section">
+  <div class="container">
+    <header class="vision-head">
+      <p class="eyebrow">{v.eyebrow}</p>
+      <h1>{v.title}</h1>
+      <p class="lede">{v.lede}</p>
+    </header>
+
+    {
+      v.sections.map((s) => (
+        <section class="vision-section">
+          <h2>{s.title}</h2>
+          {s.paragraphs.map((p) => (
+            <p>{p}</p>
+          ))}
+        </section>
+      ))
+    }
+
+    <aside class="vision-cta">
+      <h2>{v.cta.title}</h2>
+      <p>{v.cta.text}</p>
+      <a class="btn btn-primary" href="/login">{v.cta.button}</a>
+    </aside>
+
+    <p class="back">
+      <a href={localeHref(locale, '/')}>{v.back}</a>
+    </p>
+  </div>
+</article>
+
+<style>
+  .vision .container {
+    max-width: 720px;
+  }
+  .vision-head {
+    margin-bottom: var(--space-4);
+  }
+  .vision-head h1 {
+    font-size: clamp(1.9rem, 5vw, 2.8rem);
+  }
+  .vision-head .lede {
+    font-size: 1.1rem;
+    color: var(--brand-ink);
+    opacity: 0.85;
+  }
+  .vision-section {
+    margin-bottom: var(--space-4);
+  }
+  .vision-section h2 {
+    font-size: 1.4rem;
+  }
+  .vision-section p {
+    color: var(--brand-ink);
+    opacity: 0.85;
+  }
+  .vision-cta {
+    background: var(--brand-hero-1);
+    border-radius: var(--brand-radius);
+    padding: var(--space-3);
+    text-align: center;
+    margin-block: var(--space-4);
+  }
+  .vision-cta h2 {
+    font-size: 1.3rem;
+  }
+  .back {
+    text-align: center;
+  }
+</style>

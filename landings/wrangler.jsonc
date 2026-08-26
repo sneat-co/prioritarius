@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // `template` is renamed to your extension id by ./customize.sh.
-  "name": "template",
+  "name": "prioritarius",
   "compatibility_date": "2026-06-23",
   "workers_dev": true,
   // Edge router: reserved public paths -> landing; everything else -> the

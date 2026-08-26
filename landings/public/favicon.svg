@@ -1,5 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Template">
-  <!-- TODO(branding): replace with your product mark. -->
-  <rect width="64" height="64" rx="14" fill="#4f46e5"/>
-  <text x="32" y="42" text-anchor="middle" font-family="Poppins, Segoe UI, system-ui, sans-serif" font-size="30" font-weight="800" fill="#ffffff">T</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Prioritarius">
+  <!-- Prioritarius mark: three streams of work converging on the goal. -->
+  <rect width="64" height="64" rx="14" fill="#fafbf9"/>
+  <path d="M8 14 C 26 14, 30 30, 46 31" fill="none" stroke="#0f7b8a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M8 32 L 44 32" fill="none" stroke="#0f7b8a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M8 50 C 26 50, 30 34, 46 33" fill="none" stroke="#0f7b8a" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="49" cy="32" r="9" fill="#c79a3b"/>
+  <circle cx="49" cy="32" r="3.6" fill="#fafbf9"/>
 </svg>

@@ -1,44 +1,47 @@
 /*
- * Landing design tokens — neutral starter palette.
+ * Prioritarius landing design tokens.
  *
- * TODO(branding): pick your product's colours here. Keep each Sneat product
- * visually distinct (e.g. ReQuoter = teal, Surpriseless = indigo+amber).
- * Everything else maps onto these tokens via global.css, so this file is the
- * single place to re-theme.
+ * Light, cartographic palette: map-paper background, petrol ink, river teal
+ * for flow and actions, shallow-water washes for sections, and a restrained
+ * gold reserved for goal markers (the flags on the right bank). Everything
+ * else maps onto these tokens via global.css, so this file is the single
+ * place to re-theme.
  */
 :root {
   /* Brand */
-  --brand-primary: #4f46e5;        /* primary — CTAs, accents */
-  --brand-primary-strong: #4338ca; /* hover / shade */
-  --brand-accent: #a5b4fc;         /* light accent */
-  --brand-ink: #14183a;            /* primary text + footer */
-  --brand-muted: #5b6480;          /* muted text */
+  --brand-primary: #0f7b8a;        /* river teal — CTAs, accents, streams */
+  --brand-primary-strong: #0a5864; /* deep water — hover / shade */
+  --brand-accent: #8fc7ce;         /* light stream accent */
+  --brand-ink: #0e2a35;            /* petrol ink — primary text + footer */
+  --brand-muted: #4c6672;          /* muted text */
+  --brand-gold: #c79a3b;           /* goal flags + rank badges ONLY */
+  --brand-gold-ink: #7a5a17;       /* text on gold washes */
 
   /* Chrome */
-  --brand-bg: #f8f9fe;            /* page background */
+  --brand-bg: #fafbf9;            /* map paper */
   --brand-surface: #ffffff;       /* cards */
-  --brand-soft: #f3f4fd;          /* alt section */
-  --brand-hero-1: #eef1ff;        /* hero gradient top */
-  --brand-hero-2: #dfe4ff;        /* hero gradient bottom */
-  --brand-border: #e6e8f5;
-  --brand-danger: #d64545;
+  --brand-soft: #f0f5f4;          /* alt section wash */
+  --brand-hero-1: #f3f8f7;        /* hero gradient top */
+  --brand-hero-2: #dceef0;        /* hero gradient bottom — shallows */
+  --brand-border: #dde7e6;
+  --brand-danger: #b4552d;        /* blocked/rust — blocks edges, warnings */
 
   /* Status pills */
-  --brand-live-bg: #e0e7ff;
-  --brand-live-ink: #3730a3;
-  --brand-soon-bg: #eef0f6;
-  --brand-soon-ink: #5b6480;
+  --brand-live-bg: #dceef0;
+  --brand-live-ink: #0a5864;
+  --brand-soon-bg: #eef1f0;
+  --brand-soon-ink: #4c6672;
 
   /* Type & shape */
-  /* Montserrat ships latin + cyrillic, so one brand font covers both locales
-     this landing publishes. It replaced Poppins, which has no Cyrillic at all
-     (latin / latin-ext / devanagari only) and left every Russian page rendering
-     in a system fallback while English got the brand font.
-     Check the subsets at fonts.google.com before swapping this — the failure is
-     silent, and visible only in the language you don't read. The @font-face
-     comes from the <link> in layouts/BaseLayout.astro. */
-  --brand-font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --brand-radius: 16px;
+  /* Literata (display serif) + IBM Plex Sans (body) + IBM Plex Mono (effort
+     figures). All three ship Latin AND Cyrillic — this landing publishes en +
+     ru, and a face missing a script fails silently in the language you don't
+     read. Check subsets at fonts.google.com before swapping any of them.
+     The @font-face links live in layouts/BaseLayout.astro. */
+  --brand-font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --brand-font-display: "Literata", Georgia, "Times New Roman", serif;
+  --brand-font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --brand-radius: 14px;
   --brand-radius-pill: 999px;
-  --brand-shadow: 0 10px 26px rgba(20, 24, 58, 0.12);
+  --brand-shadow: 0 10px 26px rgba(14, 42, 53, 0.1);
 }

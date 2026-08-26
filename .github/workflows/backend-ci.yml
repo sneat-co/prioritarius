@@ -1,7 +1,7 @@
 name: Backend CI
 
 # Go CI for the dalgo-only domain module at backend/ (module
-# github.com/sneat-co/template/backend — customize.sh renames this along with
+# github.com/sneat-co/prioritarius/backend — customize.sh renames this along with
 # backend/go.mod when you run it).
 
 on:

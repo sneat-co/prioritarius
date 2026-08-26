@@ -1,6 +1,6 @@
-# Template backend
+# Prioritarius backend
 
-Go domain module for this extension. Module path: `github.com/sneat-co/template/backend`
+Go domain module for this extension. Module path: `github.com/sneat-co/prioritarius/backend`
 (the module is rooted here in `backend/`, not at the repo root — same shape as
 `eventius/backend` and `togethered/backend`).
 
@@ -24,9 +24,9 @@ anything real:
 
 | Package | What it is |
 |---|---|
-| `const4template` | Extension ID (plain string constant) |
-| `models4template` | A placeholder DBO + dalgo key builder |
-| `facade4template` | `Facade` (injected `dal.DB` + ports) and one example command, `CreateExampleItem` |
+| `const4prioritarius` | Extension ID (plain string constant) |
+| `models4prioritarius` | A placeholder DBO + dalgo key builder |
+| `facade4prioritarius` | `Facade` (injected `dal.DB` + ports) and one example command, `CreateExampleItem` |
 
 **Delete the placeholder as you build real domain logic.** Nothing here is
 product code — it exists to prove the wiring, the way `Home.astro`'s example
@@ -34,7 +34,7 @@ copy in `landings/` does for the frontend.
 
 ## Adding a real port
 
-1. Define the interface in `facade4template` (or a new file) — small, one or
+1. Define the interface in `facade4prioritarius` (or a new file) — small, one or
    two methods, primitives + the extension's own spec types only. Never leak
    another extension's DBO/DTO across it.
 2. Add it as a `Facade` field + `NewFacade` parameter.

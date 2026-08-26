@@ -3,10 +3,10 @@
 // connect" class of bug (a dev/emulator bundle shipped to prod) before users do.
 //
 // Usage: node scripts/post-deploy-smoke.mjs [url]
-//   url defaults to https://template-app.web.app
+//   url defaults to https://prioritarius-app.web.app
 import { chromium } from '@playwright/test';
 
-const url = process.argv[2] || 'https://template-app.web.app';
+const url = process.argv[2] || 'https://prioritarius-app.web.app';
 const loginUrl = url.replace(/\/$/, '') + '/login';
 
 const browser = await chromium.launch();

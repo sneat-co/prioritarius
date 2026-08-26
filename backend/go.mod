@@ -1,4 +1,4 @@
-module github.com/sneat-co/template/backend
+module github.com/sneat-co/prioritarius/backend
 
 go 1.26.0
 

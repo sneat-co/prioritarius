@@ -11,8 +11,8 @@ import { cp, access } from 'node:fs/promises';
 import { sep } from 'node:path';
 
 // This template is a single Nx workspace: the app builds to
-// <repo-root>/dist/apps/template-app/browser, and landings/ is one level down.
-const BROWSER = '../dist/apps/template-app/browser';
+// <repo-root>/dist/apps/prioritarius-app/browser, and landings/ is one level down.
+const BROWSER = '../dist/apps/prioritarius-app/browser';
 const DIST = './dist';
 
 try {

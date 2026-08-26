@@ -1,5 +1,5 @@
 {
-  "name": "template-landing",
+  "name": "prioritarius-landing",
   "type": "module",
   "version": "0.1.0",
   "private": true,
@@ -8,7 +8,7 @@
     "start": "astro dev",
     "build": "astro check && astro build && pnpm run build:app && node scripts/assemble-app.mjs",
     "build:landing": "astro check && astro build",
-    "build:app": "cd .. && npx nx build template-app --base-href=/",
+    "build:app": "cd .. && npx nx build prioritarius-app --base-href=/",
     "check": "astro check",
     "preview": "astro preview",
     "astro": "astro"

@@ -42,12 +42,24 @@ body {
 }
 
 h1,
-h2,
-h3 {
+h2 {
+  font-family: var(--brand-font-display);
   line-height: 1.12;
   margin: 0 0 var(--space-2);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  line-height: 1.2;
+  margin: 0 0 var(--space-2);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mono {
+  font-family: var(--brand-font-mono);
+  font-size: 0.85em;
 }
 
 p {

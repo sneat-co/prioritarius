@@ -93,7 +93,7 @@
   },
   "release": {
     "projects": [
-      "ext-template-runtime"
+      "ext-prioritarius-runtime"
     ],
     "projectsRelationship": "fixed",
     "docker": {

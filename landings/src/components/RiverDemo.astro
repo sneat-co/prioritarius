@@ -1,0 +1,575 @@
+---
+/**
+ * The interactive river — the landing's signature element.
+ *
+ * A hand-laid layered projection of a small sample goal graph: work on the
+ * left, projects midstream, goals on the right bank. Geometry lives here;
+ * every human-readable string (labels, effort figures, explanation cards)
+ * comes from the copy layer so both locales explain the same portfolio.
+ *
+ * Interaction: selecting a node highlights its full upstream + downstream
+ * closure and fades the rest; goals with cards show "next best work", tasks
+ * show downstream impact. Pure inline SVG + a small script — no libraries.
+ */
+import { type LangCode } from '../i18n/languages';
+import { getCopy } from '../i18n/copy';
+
+interface Props {
+  locale: LangCode;
+}
+const { locale } = Astro.props;
+const copy = getCopy(locale);
+const d = copy.demo;
+
+type Kind = 'work' | 'project' | 'goal';
+interface Node {
+  id: string;
+  kind: Kind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Committed drag-rank; rendered as a gold badge. */
+  rank?: number;
+  /** Exploring goals render dashed + muted. */
+  exploring?: boolean;
+}
+
+const NODES: Node[] = [
+  // Work, first column
+  { id: 't-seo', kind: 'work', x: 16, y: 40, w: 170, h: 40 },
+  { id: 't-login', kind: 'work', x: 16, y: 132, w: 170, h: 40 },
+  { id: 't-pay', kind: 'work', x: 16, y: 280, w: 170, h: 40 },
+  { id: 't-news', kind: 'work', x: 16, y: 396, w: 170, h: 40 },
+  { id: 't-kite', kind: 'work', x: 16, y: 496, w: 170, h: 40 },
+  // Work, second column (downstream of blockers / deeper decomposition)
+  { id: 't-cal', kind: 'work', x: 232, y: 150, w: 150, h: 40 },
+  { id: 't-bookings', kind: 'work', x: 232, y: 280, w: 150, h: 40 },
+  // Projects
+  { id: 'p-siteA', kind: 'project', x: 452, y: 64, w: 150, h: 44 },
+  { id: 'p-siteB', kind: 'project', x: 452, y: 152, w: 150, h: 44 },
+  { id: 'p-gt', kind: 'project', x: 452, y: 262, w: 150, h: 44 },
+  // Intermediate goals
+  { id: 'g-cust', kind: 'goal', x: 648, y: 104, w: 160, h: 44 },
+  { id: 'g-launch', kind: 'goal', x: 640, y: 258, w: 172, h: 44, rank: 2 },
+  { id: 'g-ret', kind: 'goal', x: 648, y: 390, w: 160, h: 44 },
+  // Ultimate goals, right bank
+  { id: 'g-mrr', kind: 'goal', x: 826, y: 176, w: 168, h: 48, rank: 1 },
+  { id: 'g-kite', kind: 'goal', x: 826, y: 488, w: 168, h: 44, exploring: true },
+];
+
+interface Edge {
+  from: string;
+  to: string;
+  w: number;
+  type?: 'blocks';
+}
+
+const EDGES: Edge[] = [
+  { from: 't-seo', to: 'p-siteA', w: 3 },
+  { from: 't-login', to: 'p-siteA', w: 5 },
+  { from: 't-login', to: 'p-siteB', w: 5 },
+  { from: 't-cal', to: 'p-gt', w: 6.5 },
+  { from: 't-bookings', to: 'p-gt', w: 9 },
+  { from: 't-news', to: 'g-ret', w: 4 },
+  { from: 't-kite', to: 'g-kite', w: 3 },
+  { from: 'p-siteA', to: 'g-cust', w: 6 },
+  { from: 'p-siteB', to: 'g-cust', w: 5 },
+  { from: 'p-gt', to: 'g-launch', w: 9 },
+  { from: 'g-cust', to: 'g-mrr', w: 7 },
+  { from: 'g-launch', to: 'g-mrr', w: 8 },
+  { from: 'g-ret', to: 'g-mrr', w: 5 },
+  { from: 't-pay', to: 't-bookings', w: 3, type: 'blocks' },
+];
+
+const byId = new Map(NODES.map((n) => [n.id, n]));
+
+function edgePath(e: Edge): string {
+  const a = byId.get(e.from)!;
+  const b = byId.get(e.to)!;
+  const x1 = a.x + a.w;
+  const y1 = a.y + a.h / 2;
+  const x2 = b.x;
+  const y2 = b.y + b.h / 2;
+  const mx = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+}
+
+function edgeMid(e: Edge): { x: number; y: number } {
+  const a = byId.get(e.from)!;
+  const b = byId.get(e.to)!;
+  return { x: (a.x + a.w + b.x) / 2, y: (a.y + a.h / 2 + b.y + b.h / 2) / 2 };
+}
+
+/** Stagger the draw-in by column so the river flows left to right. */
+const delayFor = (e: Edge) => `${0.15 + (byId.get(e.from)!.x / 1000) * 0.9}s`;
+
+const cardIds = Object.keys(d.cards);
+---
+
+<section id="demo" class="demo section" aria-label={d.title}>
+  <div class="container">
+    <div class="text-center section-head">
+      <p class="eyebrow">{d.eyebrow}</p>
+      <h2>{d.title}</h2>
+    </div>
+
+    <div class="demo-wrap" data-river>
+      <p class="visually-hidden">{d.srInstructions}</p>
+      <div class="demo-scroll">
+        <svg
+          viewBox="0 0 1000 570"
+          role="group"
+          aria-label={d.eyebrow}
+          class="river"
+        >
+          <g class="edges">
+            {
+              EDGES.map((e) => (
+                <path
+                  class={`edge${e.type === 'blocks' ? ' edge-blocks' : ''}`}
+                  d={edgePath(e)}
+                  pathLength="1"
+                  style={`stroke-width:${e.w};animation-delay:${delayFor(e)}`}
+                  data-from={e.from}
+                  data-to={e.to}
+                />
+              ))
+            }
+            {
+              EDGES.filter((e) => e.type === 'blocks').map((e) => {
+                const m = edgeMid(e);
+                return (
+                  <text class="blocks-label" x={m.x} y={m.y - 7} text-anchor="middle">
+                    {d.legend.blocks}
+                  </text>
+                );
+              })
+            }
+          </g>
+          <g class="nodes">
+            {
+              NODES.map((n) => (
+                <g
+                  class={`node node-${n.kind}${n.exploring ? ' node-exploring' : ''}`}
+                  data-id={n.id}
+                  tabindex="0"
+                  role="button"
+                  aria-label={`${
+                    n.kind === 'goal' ? d.legend.goal : n.kind === 'project' ? d.legend.project : d.legend.work
+                  }: ${d.labels[n.id]}${d.est[n.id] ? ` (${d.est[n.id]})` : ''}`}
+                >
+                  {n.kind === 'goal' ? (
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx={n.h / 2} />
+                  ) : (
+                    <rect x={n.x} y={n.y} width={n.w} height={n.h} rx="10" />
+                  )}
+                  {n.kind === 'project' && (
+                    <rect class="project-tab" x={n.x} y={n.y + 8} width="4" height={n.h - 16} rx="2" />
+                  )}
+                  <text
+                    class="label"
+                    x={n.x + n.w / 2 + (n.rank ? 8 : 0)}
+                    y={n.y + n.h / 2 + 4}
+                    text-anchor="middle"
+                  >
+                    {d.labels[n.id]}
+                  </text>
+                  {n.rank && (
+                    <g class="rank">
+                      <circle cx={n.x + 2} cy={n.y + n.h / 2} r="12" />
+                      <text x={n.x + 2} y={n.y + n.h / 2 + 4} text-anchor="middle">
+                        {n.rank}
+                      </text>
+                    </g>
+                  )}
+                  {d.est[n.id] && (
+                    <g class="est">
+                      <rect x={n.x + n.w - 18} y={n.y - 9} width="34" height="18" rx="9" />
+                      <text x={n.x + n.w - 1} y={n.y + 4} text-anchor="middle">
+                        {d.est[n.id]}
+                      </text>
+                    </g>
+                  )}
+                  {n.exploring && (
+                    <text class="exploring-label" x={n.x + n.w / 2} y={n.y + n.h + 16} text-anchor="middle">
+                      {d.legend.exploring}
+                    </text>
+                  )}
+                </g>
+              ))
+            }
+          </g>
+        </svg>
+      </div>
+
+      <aside class="demo-card" aria-live="polite">
+        <div class="card-body" data-card="hint">
+          <p>{d.hint}</p>
+        </div>
+        {
+          cardIds.map((id) => (
+            <div class="card-body" data-card={id} hidden>
+              <h3>{d.cards[id].title}</h3>
+              {d.cards[id].lines.map((line) => (
+                <p>{line}</p>
+              ))}
+              <button type="button" class="card-reset" data-reset>
+                {d.reset}
+              </button>
+            </div>
+          ))
+        }
+      </aside>
+    </div>
+
+    <ul class="legend" role="list">
+      <li><span class="swatch swatch-goal"></span>{d.legend.goal}</li>
+      <li><span class="swatch swatch-project"></span>{d.legend.project}</li>
+      <li><span class="swatch swatch-work"></span>{d.legend.work}</li>
+      <li><span class="swatch swatch-blocks"></span>{d.legend.blocks}</li>
+      <li><span class="swatch swatch-exploring"></span>{d.legend.exploring}</li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .demo {
+    background: linear-gradient(180deg, var(--brand-hero-1) 0%, var(--brand-bg) 100%);
+  }
+
+  .demo-wrap {
+    position: relative;
+  }
+
+  .demo-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--brand-radius);
+  }
+
+  .river {
+    display: block;
+    min-width: 880px;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Streams */
+  .edge {
+    fill: none;
+    stroke: var(--brand-accent);
+    stroke-linecap: round;
+    opacity: 0.85;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: draw 0.9s ease-out forwards;
+    transition: opacity 0.25s ease, stroke 0.25s ease;
+  }
+  .edge-blocks {
+    stroke: var(--brand-danger);
+    stroke-dasharray: 0.04 0.02;
+    opacity: 0.7;
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .blocks-label {
+    font-family: var(--brand-font-mono);
+    font-size: 10px;
+    fill: var(--brand-danger);
+  }
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .edge {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Nodes */
+  .node {
+    cursor: pointer;
+  }
+  .node rect {
+    transition: opacity 0.25s ease, stroke 0.2s ease, filter 0.2s ease;
+  }
+  .node:focus {
+    outline: none;
+  }
+  .node:focus-visible rect:first-of-type {
+    stroke: var(--brand-primary-strong);
+    stroke-width: 3;
+  }
+  .node text {
+    pointer-events: none;
+  }
+
+  .node-work rect:first-of-type {
+    fill: var(--brand-surface);
+    stroke: var(--brand-border);
+    stroke-width: 1.5;
+  }
+  .node-work .label {
+    font-family: var(--brand-font-sans);
+    font-size: 11.5px;
+    fill: var(--brand-ink);
+  }
+
+  .node-project rect:first-of-type {
+    fill: #e9f2f1;
+    stroke: var(--brand-primary);
+    stroke-width: 1;
+  }
+  .node-project .project-tab {
+    fill: var(--brand-primary);
+  }
+  .node-project .label {
+    font-family: var(--brand-font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--brand-primary-strong);
+  }
+
+  .node-goal rect:first-of-type {
+    fill: var(--brand-surface);
+    stroke: var(--brand-primary);
+    stroke-width: 1.6;
+  }
+  .node-goal .label {
+    font-family: var(--brand-font-display);
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--brand-ink);
+  }
+
+  .node-exploring rect:first-of-type {
+    stroke-dasharray: 5 4;
+    stroke: var(--brand-muted);
+  }
+  .node-exploring .label {
+    fill: var(--brand-muted);
+  }
+  .exploring-label {
+    font-family: var(--brand-font-mono);
+    font-size: 10px;
+    fill: var(--brand-muted);
+  }
+
+  .rank circle {
+    fill: var(--brand-gold);
+  }
+  .rank text {
+    font-family: var(--brand-font-display);
+    font-size: 13px;
+    font-weight: 700;
+    fill: #fff;
+  }
+
+  .est rect {
+    fill: var(--brand-soft);
+    stroke: var(--brand-border);
+  }
+  .est text {
+    font-family: var(--brand-font-mono);
+    font-size: 10.5px;
+    fill: var(--brand-muted);
+  }
+
+  /* Selection states (classes toggled by the script) */
+  .river.has-selection .node.dim rect,
+  .river.has-selection .node.dim text {
+    opacity: 0.18;
+  }
+  .river.has-selection .edge.dim {
+    opacity: 0.08;
+  }
+  .river.has-selection .edge:not(.dim):not(.edge-blocks) {
+    stroke: var(--brand-primary);
+  }
+  .node.selected rect:first-of-type {
+    stroke: var(--brand-primary-strong);
+    stroke-width: 3;
+    filter: drop-shadow(0 3px 6px rgba(10, 88, 100, 0.25));
+  }
+
+  /* Explanation card */
+  .demo-card {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    width: min(330px, 38%);
+    background: var(--brand-surface);
+    border: 1px solid var(--brand-border);
+    border-radius: var(--brand-radius);
+    box-shadow: var(--brand-shadow);
+    padding: var(--space-2);
+  }
+  .demo-card h3 {
+    font-size: 1rem;
+    margin-bottom: var(--space-1);
+  }
+  .demo-card p {
+    font-size: 0.86rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.45;
+  }
+  .card-reset {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--brand-primary-strong);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+  .card-reset:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 860px) {
+    .demo-card {
+      position: static;
+      width: auto;
+      margin-top: var(--space-2);
+    }
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    font-size: 0.82rem;
+    color: var(--brand-muted);
+  }
+  .legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .swatch {
+    display: inline-block;
+    width: 18px;
+    height: 12px;
+    border-radius: 6px;
+  }
+  .swatch-goal {
+    background: var(--brand-surface);
+    border: 1.6px solid var(--brand-primary);
+  }
+  .swatch-project {
+    background: #e9f2f1;
+    border: 1px solid var(--brand-primary);
+  }
+  .swatch-work {
+    background: var(--brand-surface);
+    border: 1.5px solid var(--brand-border);
+  }
+  .swatch-blocks {
+    background: transparent;
+    border-bottom: 2px dashed var(--brand-danger);
+    border-radius: 0;
+    height: 7px;
+  }
+  .swatch-exploring {
+    background: var(--brand-surface);
+    border: 1.5px dashed var(--brand-muted);
+  }
+</style>
+
+<script>
+  for (const wrap of document.querySelectorAll<HTMLElement>('[data-river]')) {
+    const svg = wrap.querySelector<SVGSVGElement>('svg.river')!;
+    const nodes = [...svg.querySelectorAll<SVGGElement>('.node')];
+    const edges = [...svg.querySelectorAll<SVGPathElement>('.edge')];
+    const cards = [...wrap.querySelectorAll<HTMLElement>('[data-card]')];
+
+    // Adjacency from the rendered edges (blocks edges count for reachability:
+    // an unblocker is upstream of everything it releases).
+    const fwd = new Map<string, string[]>();
+    const rev = new Map<string, string[]>();
+    for (const e of edges) {
+      const from = e.dataset.from!;
+      const to = e.dataset.to!;
+      (fwd.get(from) ?? fwd.set(from, []).get(from)!).push(to);
+      (rev.get(to) ?? rev.set(to, []).get(to)!).push(from);
+    }
+
+    const closure = (start: string, adj: Map<string, string[]>): Set<string> => {
+      const seen = new Set<string>();
+      const queue = [start];
+      while (queue.length) {
+        for (const next of adj.get(queue.pop()!) ?? []) {
+          if (!seen.has(next)) {
+            seen.add(next);
+            queue.push(next);
+          }
+        }
+      }
+      return seen;
+    };
+
+    const showCard = (id: string | null) => {
+      for (const c of cards) c.hidden = c.dataset.card !== (id ?? 'hint');
+      // No card written for this node? Keep the hint visible.
+      if (id && !cards.some((c) => c.dataset.card === id)) {
+        for (const c of cards) c.hidden = c.dataset.card !== 'hint';
+      }
+    };
+
+    const clear = () => {
+      svg.classList.remove('has-selection');
+      for (const n of nodes) n.classList.remove('dim', 'selected');
+      for (const e of edges) e.classList.remove('dim');
+      showCard(null);
+    };
+
+    const select = (id: string) => {
+      const keep = closure(id, fwd);
+      for (const up of closure(id, rev)) keep.add(up);
+      keep.add(id);
+      svg.classList.add('has-selection');
+      for (const n of nodes) {
+        n.classList.toggle('dim', !keep.has(n.dataset.id!));
+        n.classList.toggle('selected', n.dataset.id === id);
+      }
+      for (const e of edges) {
+        e.classList.toggle('dim', !(keep.has(e.dataset.from!) && keep.has(e.dataset.to!)));
+      }
+      showCard(id);
+    };
+
+    for (const n of nodes) {
+      const activate = () => {
+        if (n.classList.contains('selected')) clear();
+        else select(n.dataset.id!);
+      };
+      n.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        activate();
+      });
+      n.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          activate();
+        }
+      });
+    }
+
+    svg.addEventListener('click', clear);
+    wrap.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') clear();
+    });
+    for (const btn of wrap.querySelectorAll('[data-reset]')) {
+      btn.addEventListener('click', clear);
+    }
+  }
+</script>

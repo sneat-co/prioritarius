@@ -24,10 +24,10 @@ contract package just as another extension would.
 
 ```text
 apps/
-  template-app/        # Ionic composition root
-  template-app-e2e/    # Playwright harness
-libs/extensions/template/
-  runtime/             # @sneat/extension-template
+  prioritarius-app/        # Ionic composition root
+  prioritarius-app-e2e/    # Playwright harness
+libs/extensions/prioritarius/
+  runtime/             # @sneat/extension-prioritarius
 landings/               # Astro marketing site (see landings/README.md)
 backend/                # Go domain module (see backend/README.md)
 ```
@@ -35,12 +35,12 @@ backend/                # Go domain module (see backend/README.md)
 This demo pairs with the exception-path
 [`sneat-ext-contract-template`](../sneat-ext-contract-template)
 repository, which owns
-`@sneat/extension-template-contract`. A real new extension should default to
+`@sneat/extension-prioritarius-contract`. A real new extension should default to
 `sneat-ext-contracts` instead — see the banner above.
 
 ## Backend
 
-`backend/` is a Go domain module (`github.com/sneat-co/template/backend`) built
+`backend/` is a Go domain module (`github.com/sneat-co/prioritarius/backend`) built
 to the org's
 [ports-and-adapters standard](https://github.com/sneat-co/sneat-specs/blob/main/standards/extension-backend-architecture.md):
 it depends on `dal-go/dalgo` only — never `sneat-go-core`, `sneat-core-modules`,
@@ -66,10 +66,10 @@ export concrete services, pages, or components for other extension libraries to
 consume.
 
 ```ts
-import { provideTemplate, templateSpaceRoutes } from '@sneat/extension-template';
+import { providePrioritarius, prioritariusSpaceRoutes } from '@sneat/extension-prioritarius';
 
 bootstrapApplication(App, {
-  providers: [...provideTemplate(), provideRouter(templateSpaceRoutes)],
+  providers: [...providePrioritarius(), provideRouter(prioritariusSpaceRoutes)],
 });
 ```
 

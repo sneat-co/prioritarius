@@ -1,0 +1,94 @@
+{
+  "name": "prioritarius-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "prefix": "prioritarius",
+  "sourceRoot": "apps/prioritarius-app/src",
+  "tags": [
+    "domain:prioritarius",
+    "layer:app"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@angular/build:application",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/apps/prioritarius-app",
+        "browser": "apps/prioritarius-app/src/main.ts",
+        "tsConfig": "apps/prioritarius-app/tsconfig.app.json",
+        "inlineStyleLanguage": "scss",
+        "assets": [
+          {
+            "glob": "**/*",
+            "input": "apps/prioritarius-app/public"
+          }
+        ],
+        "styles": [
+          "apps/prioritarius-app/src/styles.scss"
+        ]
+      },
+      "configurations": {
+        "production": {
+          "budgets": [
+            {
+              "type": "initial",
+              "maximumWarning": "4mb",
+              "maximumError": "6mb"
+            },
+            {
+              "type": "anyComponentStyle",
+              "maximumWarning": "4kb",
+              "maximumError": "8kb"
+            }
+          ],
+          "outputHashing": "all"
+        },
+        "development": {
+          "optimization": false,
+          "extractLicenses": false,
+          "sourceMap": true
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@angular/build:dev-server",
+      "// options.prebundle": "Vite's dev-server dependency pre-bundling mishandles @ionic-native/core's partially-Ivy-compiled output, throwing 'needs to be compiled using the JIT compiler, but @angular/compiler is not available' at runtime in dev-server (production `nx build` is unaffected — it AOT-compiles the whole graph, no Vite prebundling involved).",
+      "options": {
+        "prebundle": false
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "prioritarius-app:build:production"
+        },
+        "development": {
+          "buildTarget": "prioritarius-app:build:development"
+        }
+      },
+      "defaultConfiguration": "development"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "test": {
+      "executor": "@angular/build:unit-test",
+      "options": {
+        "watch": false,
+        "runnerConfig": "apps/prioritarius-app/vitest.config.ts"
+      }
+    },
+    "serve-static": {
+      "continuous": true,
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "prioritarius-app:build",
+        "port": 4200,
+        "staticFilePath": "dist/apps/prioritarius-app/browser",
+        "spa": true
+      }
+    }
+  }
+}

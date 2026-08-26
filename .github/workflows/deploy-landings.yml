@@ -14,7 +14,7 @@ name: Deploy landings + app (Cloudflare)
 # This repo deploys itself as its own live demo (ext-template.sneat.dev), under
 # wrangler.demo.jsonc — a config separate from the fork-facing wrangler.jsonc,
 # so the demo's own worker name never collides with wrangler.jsonc's `name:
-# "template"` placeholder that customize.sh renames per fork. customize.sh
+# "prioritarius"` placeholder that customize.sh renames per fork. customize.sh
 # strips the `wrangler-config` line below (and deletes wrangler.demo.jsonc)
 # during scaffolding, so a fork deploys via the plain default wrangler.jsonc
 # instead and previews on workers.dev until it sets up its own apex.
@@ -42,7 +42,6 @@ jobs:
       # don't inherit repo variables, so they fall back to the example.com
       # placeholder until they set their own.
       build-command: PUBLIC_SITE_URL='${{ vars.PUBLIC_SITE_URL }}' pnpm build
-      wrangler-config: wrangler.demo.jsonc
       cloudflare-account-id: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       extra-install-directory: "."
     secrets:
