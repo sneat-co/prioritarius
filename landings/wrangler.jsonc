@@ -33,7 +33,7 @@
   // Zone:DNS:Edit — a plain OAuth/`workers`-only token cannot create them.
   // Do it once in the Cloudflare dashboard (or with a DNS-scoped token), then
   // CI keeps the worker in sync. See docs/HOSTING.md.
-  // "routes": [
-  //   { "pattern": "example.com", "custom_domain": true }
-  // ]
+  "routes": [
+    { "pattern": "prioritarius.com", "custom_domain": true }
+  ]
 }
