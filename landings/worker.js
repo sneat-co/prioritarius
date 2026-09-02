@@ -20,6 +20,14 @@
 // That is the single easiest way to break this landing, and it hides well.
 const RESERVED_LOCALES = ['en', 'ru'];
 
+// Firebase Auth serves its sign-in handler + helpers under /__/ (e.g.
+// /__/auth/handler, /__/auth/iframe). The app pins authDomain = prioritarius.com
+// for same-origin redirect sign-in, but prioritarius.com is served by this
+// Worker, not Firebase Hosting — so reverse-proxy /__/ to the project's Firebase
+// Hosting origin, which serves the real handler. Rewrite (not a 3xx), mirroring
+// schoolus/sneat-club.
+const FIREBASE_HOSTING_HOST = 'sneat-eur3-1.firebaseapp.com';
+
 function isReservedPublicPath(pathname) {
   let p = pathname || '/';
   if (p.length > 1 && p.endsWith('/')) p = p.replace(/\/+$/, '') || '/';
@@ -38,6 +46,26 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const p = url.pathname;
+
+    // Firebase Auth handler + helpers (/__/*) -> reverse-proxy to Firebase
+    // Hosting, which serves them. Keeps redirect sign-in same-origin.
+    if (p === '/__' || p.startsWith('/__/')) {
+      const upstream = new URL(url);
+      upstream.protocol = 'https:';
+      upstream.hostname = FIREBASE_HOSTING_HOST;
+      upstream.port = '';
+      const headers = new Headers(request.headers);
+      headers.delete('host'); // let fetch set Host from the upstream URL
+      return fetch(upstream.toString(), {
+        method: request.method,
+        headers,
+        body:
+          request.method === 'GET' || request.method === 'HEAD'
+            ? undefined
+            : request.body,
+        redirect: 'manual',
+      });
+    }
 
     // Legacy /pwa/* backward compatibility -> root-mounted route (permanent).
     // Remove once no old /pwa/* links remain.
