@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Smoke scope (per decision): assert the app boots and routes resolve without
-// crashing. Full "renders lists data" needs an authenticated session + seeded
+// crashing. Full "renders maps data" needs an authenticated session + seeded
 // space (deferred), so an unauthenticated login redirect is the expected path.
 
 test('app boots and redirects unauthenticated user to login', async ({
@@ -23,13 +23,13 @@ test('app boots and redirects unauthenticated user to login', async ({
   );
 });
 
-test('space-scoped lists route loads without crashing', async ({ page }) => {
+test('space-scoped maps route loads without crashing', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (e) => pageErrors.push(String(e)));
 
-  // Lazy-loads the template space shell + lists route. Unauthenticated, this
-  // redirects to login; the assertion is that the app handles it without throwing.
-  await page.goto('/space/family/smoke-test-space/lists');
+  // Lazy-loads the space shell + maps route. Unauthenticated, this redirects
+  // to login; the assertion is that the app handles it without throwing.
+  await page.goto('/space/family/smoke-test-space/maps');
 
   await expect(page.locator('prioritarius-root')).toBeAttached();
 

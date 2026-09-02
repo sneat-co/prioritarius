@@ -13,11 +13,7 @@ export default [
         {
           // The paired contract/UI packages are deliberately external to this
           // starter workspace and are installed after their first publication.
-          ignoredDependencies: [
-            'vitest',
-            '@sneat/extension-contactus-ui',
-            '@sneat/extension-prioritarius-contract',
-          ],
+          ignoredDependencies: ['vitest', '@sneat/extension-contactus-ui'],
           ignoredFiles: [
             '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
             '{projectRoot}/vitest.config.{js,cjs,mjs,ts,cts,mts}',
@@ -32,17 +28,6 @@ export default [
   {
     files: ['**/*.ts'],
     rules: {
-      // TEMPORARY while src/contract-stub stands in for the unpublished
-      // @sneat/extension-prioritarius-contract package: importing it by that
-      // alias is a self-import of this project. Remove with the stub.
-      '@nx/enforce-module-boundaries': [
-        'error',
-        {
-          allowCircularSelfDependency: true,
-          enforceBuildableLibDependency: true,
-          allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
-        },
-      ],
       '@angular-eslint/directive-selector': [
         'error',
         {

@@ -16,7 +16,7 @@ export const prioritariusSpaceRoutes: Route[] = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'lists',
+        redirectTo: 'maps',
       },
       ...prioritariusRoutes,
     ],
