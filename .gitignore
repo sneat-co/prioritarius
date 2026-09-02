@@ -53,3 +53,6 @@ vitest.config.*.timestamp*
 .nx/polygraph
 .nx/self-healing
 __screenshots__/
+specscore.local.yaml
+**/.*.lifecycle-transaction.lock
+.specscore-lifecycle.lock
