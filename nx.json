@@ -139,7 +139,7 @@
     {
       "plugin": "@nx/vitest",
       "options": {
-        "testTargetName": "vite:test"
+        "testTargetName": "test"
       }
     }
   ],

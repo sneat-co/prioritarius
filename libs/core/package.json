@@ -1,0 +1,12 @@
+{
+  "name": "@sneat/prioritarius-core",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "sideEffects": false,
+  "dependencies": {
+    "tslib": "^2.3.0"
+  }
+}

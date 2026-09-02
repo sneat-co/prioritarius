@@ -16,7 +16,8 @@
     "paths": {
       "@sneat/extension-prioritarius": [
         "./libs/extensions/prioritarius/runtime/src/index.ts"
-      ]
+      ],
+      "@sneat/prioritarius-core": ["./libs/core/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
