@@ -1,25 +1,25 @@
 import { appRoutes } from './app.routes';
 
 describe('appRoutes', () => {
-  it('serves an authenticated home component at the root path', () => {
+  it('forwards the root path to /home instead of rendering there', () => {
+    // `/` is the landing page's URL (served by landings/worker.js on a hard
+    // load), so the app must not own it — and must not redirect to login,
+    // which bounced signed-in users straight back to the login page.
     const root = appRoutes.find((r) => r.path === '');
     expect(root?.pathMatch).toBe('full');
-    // Root must render a landing component, NOT redirect to login (which would
-    // bounce signed-in users straight back to the login page).
-    expect(root?.redirectTo).toBeUndefined();
-    expect(typeof root?.loadComponent).toBe('function');
+    expect(root?.redirectTo).toBe('home');
+    expect(root?.loadComponent).toBeUndefined();
   });
 
-  it('guards the root path so unauthenticated users go to login', () => {
-    const root = appRoutes.find((r) => r.path === '');
-    expect(root?.canActivate?.length).toBeGreaterThan(0);
-    expect(typeof root?.data?.['authGuardPipe']).toBe('function');
+  it('serves the authenticated home component at /home, guarded', () => {
+    const home = appRoutes.find((r) => r.path === 'home');
+    expect(typeof home?.loadComponent).toBe('function');
+    expect(home?.canActivate?.length).toBeGreaterThan(0);
+    expect(typeof home?.data?.['authGuardPipe']).toBe('function');
   });
 
   it('mounts the space-scoped routes lazily', () => {
-    const space = appRoutes.find(
-      (r) => r.path === 'space/:spaceType/:spaceID',
-    );
+    const space = appRoutes.find((r) => r.path === 'space/:spaceType/:spaceID');
     expect(space).toBeDefined();
     expect(typeof space?.loadChildren).toBe('function');
   });

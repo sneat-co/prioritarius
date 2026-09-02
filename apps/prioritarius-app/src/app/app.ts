@@ -27,7 +27,7 @@ import { filter, map } from 'rxjs';
         <ion-menu menuId="mainMenu" contentId="main" #menu>
           <ion-header>
             <ion-toolbar color="light">
-              <ion-title [routerLink]="'/'" tappable (click)="menu.close()">
+              <ion-title [routerLink]="'/home'" tappable (click)="menu.close()">
                 Prioritarius.app
               </ion-title>
             </ion-toolbar>

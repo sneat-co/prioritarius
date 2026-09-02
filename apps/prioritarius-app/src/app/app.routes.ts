@@ -4,11 +4,18 @@ import { redirectToLoginIfNotSignedIn } from '@sneat/auth-core';
 
 export const appRoutes: Route[] = [
   {
-    // Authenticated landing: lists the user's spaces. Unauthenticated visitors
-    // are redirected to /login by the auth guard. Replaces the previous
-    // redirectTo:'login', which bounced signed-in users back to the login page.
+    // `/` belongs to the Astro landing: landings/worker.js serves index.html
+    // there on a hard load, so an Angular home mounted at '' exists only via
+    // in-app navigation and vanishes on reload. The app's front door is /home;
+    // '' only forwards in-SPA navigations (e.g. the login page's '/' fallback).
     path: '',
     pathMatch: 'full',
+    redirectTo: 'home',
+  },
+  {
+    // Authenticated landing: lists the user's spaces. Unauthenticated visitors
+    // are redirected to /login by the auth guard.
+    path: 'home',
     loadComponent: () =>
       import('./home/prioritarius-home-page.component').then(
         (m) => m.PrioritariusHomePageComponent,
@@ -21,7 +28,9 @@ export const appRoutes: Route[] = [
     // space/:spaceType/:spaceID mount point.
     path: 'space/:spaceType/:spaceID',
     loadChildren: () =>
-      import('./space/prioritarius-space.routes').then((m) => m.prioritariusSpaceRoutes),
+      import('./space/prioritarius-space.routes').then(
+        (m) => m.prioritariusSpaceRoutes,
+      ),
   },
   {
     // sneat-auth-menu-item navigates here on sign-out; mirror sneat-app and
@@ -39,6 +48,9 @@ export const appRoutes: Route[] = [
         (m) => m.MyProfilePageComponent,
       ),
     canActivate: [AuthGuard],
-    data: { title: 'My profile', authGuardPipe: () => redirectToLoginIfNotSignedIn },
+    data: {
+      title: 'My profile',
+      authGuardPipe: () => redirectToLoginIfNotSignedIn,
+    },
   },
 ];
