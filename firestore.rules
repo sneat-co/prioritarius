@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Prioritarius Firestore security rules —
+// prioritarius/domain-model#req:writes-are-backend-mediated.
+//
+// Like other Sneat extensions (see yardius/firestore.rules,
+// eventius/firestore.rules), PRODUCTION rules are deployed from the shared
+// sneat-firebase repo, NOT from this extension repo. This file is the
+// authoritative prioritarius rule fragment (to be merged into the shared
+// production rules) and the source local emulator tests load.
+//
+// Security invariant — founder ruling 2026-09-02, verbatim: "All writes in
+// sneat always go throw sneat-go backend https endpoints. No exceptions." A
+// client may READ a Space's prioritarius workspace ONLY when it is a member
+// of that Space (founder ruling 2026-09-02: "almost everything in sneat is
+// space bounded"). Every write is denied here — every mutation (create_node,
+// update_node, delete_node, create_edge, delete_edge, set_goal_order,
+// apply_template) goes through the membership-gated backend facade
+// (api4prioritarius, Admin SDK), which also enforces the DAG invariant
+// server-side (a client-side check is a convenience, never the authority).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A signed-in user is a member of a Space when their uid is in the Space
+    // document's userIDs array (dbmodels.WithUserIDs, firestore field `userIDs`).
+    function isPrioritariusSpaceMember(spaceID) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/spaces/$(spaceID))
+        && request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceID)).data.userIDs;
+    }
+
+    // The entire prioritarius workspace (nodes, edges, committedGoalOrder,
+    // unit) for a Space is ONE document at /spaces/{spaceID}/ext/prioritarius
+    // (models4prioritarius.WorkspaceDbo / NewWorkspaceKey) — see that
+    // package's doc comment for why one document, not one per node/edge.
+    // Direct client reads are allowed only to members of the OWNING Space.
+    // Writes are backend-only.
+    match /spaces/{spaceID}/ext/prioritarius {
+      allow read: if isPrioritariusSpaceMember(spaceID);
+      allow write: if false;
+
+      // Reserved for any future descendant collection under the workspace
+      // document (none in MVP — the whole graph lives on the doc above).
+      match /{document=**} {
+        allow read: if isPrioritariusSpaceMember(spaceID);
+        allow write: if false;
+      }
+    }
+  }
+}
