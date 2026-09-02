@@ -13,7 +13,7 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
 // so this page is an honest empty state with nowhere to send the user yet —
 // no CTA button, per the screen-flow rule against orphan actions.
 @Component({
-  selector: 'prioritarius-maps-page',
+  selector: 'prioritarius-goals-page',
   imports: [
     IonHeader,
     IonToolbar,
@@ -29,11 +29,11 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
         <ion-buttons slot="start">
           <ion-menu-button menu="mainMenu" />
         </ion-buttons>
-        <ion-title>Maps</ion-title>
+        <ion-title>Goals</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content class="ion-padding">
-      <h1>No goals maps yet</h1>
+      <h1>No goals yet</h1>
       <p>
         Prioritarius maps your tasks, projects and goals as one flowing graph.
         Map creation is coming — the graph model is being specified.
@@ -41,4 +41,4 @@ import { IonToolbar } from '@ionic/angular/ion-toolbar';
     </ion-content>
   `,
 })
-export class MapsPageComponent {}
+export class GoalsPageComponent {}

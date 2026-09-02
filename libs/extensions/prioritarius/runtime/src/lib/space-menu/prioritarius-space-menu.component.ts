@@ -31,7 +31,7 @@ import { takeUntil } from 'rxjs/operators';
 // generic @sneat SpaceMenuComponent (which hardcodes every sneat-app extension —
 // Assets, Budget, Calendar, Contacts, Debts, …, none of which exist in
 // prioritarius-app), this shows only what prioritarius has: a space selector (to
-// switch spaces, like sneat-app) and the single Maps item — the template's
+// switch spaces, like sneat-app) and the single Goals item — the template's
 // listus-shaped "Lists" + per-list menu entries have been retired.
 @Component({
   selector: 'prioritarius-space-menu',

@@ -2,11 +2,11 @@ import { Route } from '@angular/router';
 
 export const prioritariusRoutes: Route[] = [
   {
-    path: 'maps',
-    data: { title: 'Maps' },
+    path: 'goals',
+    data: { title: 'Goals' },
     loadComponent: () =>
-      import('./pages/maps/maps-page.component').then(
-        (m) => m.MapsPageComponent,
+      import('./pages/goals/goals-page.component').then(
+        (m) => m.GoalsPageComponent,
       ),
   },
 ];
