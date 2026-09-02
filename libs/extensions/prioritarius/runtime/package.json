@@ -7,8 +7,11 @@
   "peerDependencies": {
     "@angular/common": ">=22.0.0 <23.0.0",
     "@angular/core": ">=22.0.0 <23.0.0",
+    "@angular/fire": ">=20.0.0 <21.0.0",
+    "@angular/forms": ">=22.0.0 <23.0.0",
     "@angular/router": ">=22.0.0 <23.0.0",
     "@ionic/angular": ">=9.0.0 <10.0.0",
+    "@ionic/core": ">=9.0.0 <10.0.0",
     "rxjs": "^7.0.0",
     "@sneat/auth-core": "^0.26.4",
     "@sneat/auth-models": "^0.26.4",
@@ -20,6 +23,9 @@
     "@sneat/space-services": "^0.26.4",
     "@sneat/ui": "^0.26.4",
     "vitest": "^4.0.9"
+  },
+  "dependencies": {
+    "@sneat/prioritarius-core": "workspace:*"
   },
   "sideEffects": false
 }

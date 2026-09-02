@@ -1,0 +1,304 @@
+<ion-header>
+  <ion-toolbar color="light">
+    <ion-buttons slot="start">
+      <ion-menu-button menu="mainMenu" />
+    </ion-buttons>
+    <ion-title>Outline</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content class="ion-padding">
+  @if ($errorMessage(); as message) {
+    <ion-note color="danger">{{ message }}</ion-note>
+  }
+
+  @if ($isEmpty()) {
+    <!-- First-run empty state (founder decision, 2026-09-02): a single
+         "enter your goal" primary input, plus templates that always show a
+         compact preview before they can be applied — never sight unseen. -->
+    <h1>Enter your goal</h1>
+    <ion-item lines="full">
+      <ion-input
+        placeholder="e.g. Website A live"
+        [value]="newGoalTitle"
+        (ionInput)="onNewGoalTitleInput($event)"
+        (keyup.enter)="createGoal()"
+      />
+      <ion-button
+        slot="end"
+        fill="solid"
+        [disabled]="$busy() || !newGoalTitle.trim()"
+        (click)="createGoal()"
+      >
+        Add goal
+      </ion-button>
+    </ion-item>
+
+    <h2>Or start with a template</h2>
+    <ion-list>
+      @for (template of templates; track template.id) {
+        <ion-item lines="full">
+          <ion-label>
+            <h3>{{ template.label }}</h3>
+            <p>{{ template.description }}</p>
+            <p><em>Creates:</em> {{ template.goalTitles.join(', ') }}</p>
+          </ion-label>
+          <ion-button
+            slot="end"
+            fill="outline"
+            [disabled]="$busy()"
+            (click)="applyTemplate(template)"
+          >
+            Use template
+          </ion-button>
+        </ion-item>
+      }
+    </ion-list>
+  } @else {
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Goals</ion-label>
+      </ion-list-header>
+      @if ($committedGoals().length > 0) {
+        <ion-item lines="none">
+          <ion-label
+            ><em
+              >Committed — drag to reorder (your priority statement)</em
+            ></ion-label
+          >
+        </ion-item>
+        <ion-reorder-group
+          [disabled]="false"
+          (ionItemReorder)="onCommittedGoalsReordered($event)"
+        >
+          @for (row of $committedGoals(); track row.id) {
+            <ion-item
+              lines="full"
+              [routerLink]="spacePageUrl('node/' + row.id)"
+            >
+              <ion-label>
+                <h3>
+                  {{ row.node.title }}
+                  <ion-badge color="primary">committed</ion-badge>
+                  @if (isNodeCompleted(row.node)) {
+                    <ion-badge color="success">completed</ion-badge>
+                  }
+                </h3>
+                <p>
+                  Progress: {{ (row.figures.progress.ratio * 100).toFixed(0) }}%
+                  @if (
+                    row.figures.topDownDays !== undefined &&
+                    row.figures.bottomUpDays !== undefined
+                  ) {
+                    &middot; top-down {{ row.figures.topDownDays }}d vs
+                    bottom-up {{ row.figures.bottomUpDays }}d
+                    @if (row.figures.effective.discrepancy) {
+                      <ion-badge color="warning">discrepancy</ion-badge>
+                    }
+                  } @else {
+                    &middot; estimate
+                    {{ hoursToDisplayDays(row.figures.effective.hours) }}d
+                  }
+                  @if (
+                    unestimatedFlagLabel(row.figures.unestimatedInClosure);
+                    as flag
+                  ) {
+                    <ion-badge color="warning">{{ flag }}</ion-badge>
+                  }
+                </p>
+              </ion-label>
+              <ion-button
+                slot="end"
+                fill="clear"
+                (click)="$event.stopPropagation(); deleteRow(row)"
+              >
+                <ion-icon slot="icon-only" name="trash-outline" />
+              </ion-button>
+              <ion-reorder slot="end" />
+            </ion-item>
+          }
+        </ion-reorder-group>
+      }
+      @for (row of $otherGoals(); track row.id) {
+        <ion-item lines="full" [routerLink]="spacePageUrl('node/' + row.id)">
+          <ion-label>
+            <h3>
+              {{ row.node.title }}
+              @if (commitmentOf(row.node); as commitment) {
+                <ion-badge color="medium">{{ commitment }}</ion-badge>
+              }
+              @if (isNodeCompleted(row.node)) {
+                <ion-badge color="success">completed</ion-badge>
+              }
+            </h3>
+            <p>
+              Progress: {{ (row.figures.progress.ratio * 100).toFixed(0) }}%
+              @if (
+                row.figures.topDownDays !== undefined &&
+                row.figures.bottomUpDays !== undefined
+              ) {
+                &middot; top-down {{ row.figures.topDownDays }}d vs bottom-up
+                {{ row.figures.bottomUpDays }}d
+                @if (row.figures.effective.discrepancy) {
+                  <ion-badge color="warning">discrepancy</ion-badge>
+                }
+              } @else {
+                &middot; estimate
+                {{ hoursToDisplayDays(row.figures.effective.hours) }}d
+              }
+              @if (
+                unestimatedFlagLabel(row.figures.unestimatedInClosure);
+                as flag
+              ) {
+                <ion-badge color="warning">{{ flag }}</ion-badge>
+              }
+            </p>
+          </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            (click)="$event.stopPropagation(); deleteRow(row)"
+          >
+            <ion-icon slot="icon-only" name="trash-outline" />
+          </ion-button>
+        </ion-item>
+      } @empty {
+        @if ($committedGoals().length === 0) {
+          <ion-item lines="full"><ion-label>No goals yet.</ion-label></ion-item>
+        }
+      }
+      <ion-item lines="full">
+        <ion-input
+          placeholder="Add another goal"
+          [value]="newGoalTitle"
+          (ionInput)="onNewGoalTitleInput($event)"
+          (keyup.enter)="createGoal()"
+        />
+        <ion-button
+          slot="end"
+          fill="clear"
+          [disabled]="$busy() || !newGoalTitle.trim()"
+          (click)="createGoal()"
+        >
+          Add
+        </ion-button>
+      </ion-item>
+
+      <ion-list-header>
+        <ion-label>Projects</ion-label>
+      </ion-list-header>
+      @for (row of $projects(); track row.id) {
+        <ion-item lines="full" [routerLink]="spacePageUrl('node/' + row.id)">
+          <ion-label>
+            <h3>
+              {{ row.node.title }}
+              @if (commitmentOf(row.node); as commitment) {
+                <ion-badge
+                  [color]="commitment === 'committed' ? 'primary' : 'medium'"
+                  >{{ commitment }}</ion-badge
+                >
+              }
+            </h3>
+            <p>
+              Progress: {{ (row.figures.progress.ratio * 100).toFixed(0) }}%
+              @if (
+                row.figures.topDownDays !== undefined &&
+                row.figures.bottomUpDays !== undefined
+              ) {
+                &middot; top-down {{ row.figures.topDownDays }}d vs bottom-up
+                {{ row.figures.bottomUpDays }}d
+                @if (row.figures.effective.discrepancy) {
+                  <ion-badge color="warning">discrepancy</ion-badge>
+                }
+              } @else {
+                &middot; estimate
+                {{ hoursToDisplayDays(row.figures.effective.hours) }}d
+              }
+              @if (
+                unestimatedFlagLabel(row.figures.unestimatedInClosure);
+                as flag
+              ) {
+                <ion-badge color="warning">{{ flag }}</ion-badge>
+              }
+            </p>
+          </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            (click)="$event.stopPropagation(); deleteRow(row)"
+          >
+            <ion-icon slot="icon-only" name="trash-outline" />
+          </ion-button>
+        </ion-item>
+      } @empty {
+        <ion-item lines="full"
+          ><ion-label>No projects yet.</ion-label></ion-item
+        >
+      }
+      <ion-item lines="full">
+        <ion-input
+          placeholder="Add a project"
+          [value]="newProjectTitle"
+          (ionInput)="onNewProjectTitleInput($event)"
+          (keyup.enter)="createProject()"
+        />
+        <ion-button
+          slot="end"
+          fill="clear"
+          [disabled]="$busy() || !newProjectTitle.trim()"
+          (click)="createProject()"
+        >
+          Add
+        </ion-button>
+      </ion-item>
+
+      <ion-list-header>
+        <ion-label>Work items</ion-label>
+      </ion-list-header>
+      @for (row of $workItems(); track row.id) {
+        <ion-item lines="full" [routerLink]="spacePageUrl('node/' + row.id)">
+          <ion-label>
+            <h3>
+              {{ row.node.title }}
+              @if (isNodeCompleted(row.node)) {
+                <ion-badge color="success">done</ion-badge>
+              }
+            </h3>
+            <p>
+              estimate {{ hoursToDisplayDays(row.figures.effective.hours) }}d
+              @if (row.figures.effective.source === 'default-unestimated') {
+                <ion-badge color="warning">unestimated</ion-badge>
+              }
+            </p>
+          </ion-label>
+          <ion-button
+            slot="end"
+            fill="clear"
+            (click)="$event.stopPropagation(); deleteRow(row)"
+          >
+            <ion-icon slot="icon-only" name="trash-outline" />
+          </ion-button>
+        </ion-item>
+      } @empty {
+        <ion-item lines="full"
+          ><ion-label>No work items yet.</ion-label></ion-item
+        >
+      }
+      <ion-item lines="full">
+        <ion-input
+          placeholder="Add a work item"
+          [value]="newWorkItemTitle"
+          (ionInput)="onNewWorkItemTitleInput($event)"
+          (keyup.enter)="createWorkItem()"
+        />
+        <ion-button
+          slot="end"
+          fill="clear"
+          [disabled]="$busy() || !newWorkItemTitle.trim()"
+          (click)="createWorkItem()"
+        >
+          Add
+        </ion-button>
+      </ion-item>
+    </ion-list>
+  }
+</ion-content>
