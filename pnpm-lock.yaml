@@ -377,12 +377,21 @@ importers:
       '@angular/core':
         specifier: 22.1.3
         version: 22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)
+      '@angular/fire':
+        specifier: '>=20.0.0 <21.0.0'
+        version: 20.0.1(8e761c0f341e10f67817b67e07d0a834)
+      '@angular/forms':
+        specifier: 22.1.3
+        version: 22.1.3(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(@angular/platform-browser@22.1.3(@angular/animations@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@angular/router':
         specifier: 22.1.3
         version: 22.1.3(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(@angular/platform-browser@22.1.3(@angular/animations@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@ionic/angular':
         specifier: 9.0.0
         version: 9.0.0(6ff9fc4b486d8c68e67889d2ebc5db9b)
+      '@ionic/core':
+        specifier: 9.0.0
+        version: 9.0.0
       '@sneat/auth-core':
         specifier: 0.26.4
         version: 0.26.4(9ddff6fedb3e610cad6d13917f7153bf)
@@ -398,6 +407,9 @@ importers:
       '@sneat/extension-contactus-ui':
         specifier: 0.13.9
         version: 0.13.9(f17c5cebbdb1365ad9a11aecb0d4654b)
+      '@sneat/prioritarius-core':
+        specifier: workspace:*
+        version: link:../../../core
       '@sneat/space-components':
         specifier: 0.26.4
         version: 0.26.4(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(@ionic/angular@9.0.0(6ff9fc4b486d8c68e67889d2ebc5db9b))

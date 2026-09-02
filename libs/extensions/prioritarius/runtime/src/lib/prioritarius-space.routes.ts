@@ -16,7 +16,7 @@ export const prioritariusSpaceRoutes: Route[] = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'goals',
+        redirectTo: 'outline',
       },
       ...prioritariusRoutes,
     ],
