@@ -18,14 +18,19 @@ import { registerIonicons } from './register-ionicons';
 bootstrapApplication(App, {
   providers: [
     ...getStandardSneatProviders(prioritariusAppEnvironmentConfig),
-    // Bind the template contract token (PRIORITARIUS_SERVICE) to its concrete
-    // implementation. The app is the composition root and may wire the runtime.
+    // The app is the composition root and wires the runtime's providers.
+    // providePrioritarius() is currently a no-op: the template's listus-shaped
+    // demo domain has been retired and the real goals/projects/tasks contract
+    // is still being specified.
     ...provideContactus(),
     ...providePrioritarius(),
     // `as SneatApp`: the template's placeholder appId isn't in @sneat/core's
     // SneatApp union yet. Remove the cast once @sneat/core allows any string
     // (or once the renamed app's id is registered).
-    provideAppInfo({ appId: 'prioritarius' as SneatApp, appTitle: 'Prioritarius.app' }),
+    provideAppInfo({
+      appId: 'prioritarius' as SneatApp,
+      appTitle: 'Prioritarius.app',
+    }),
     provideRouter([...appRoutes, ...authRoutes]),
     provideRolesByType(undefined),
   ],

@@ -14,7 +14,6 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "paths": {
-      "@sneat/extension-prioritarius-contract": ["./libs/extensions/prioritarius/runtime/src/contract-stub/index.ts"],
       "@sneat/extension-prioritarius": [
         "./libs/extensions/prioritarius/runtime/src/index.ts"
       ]

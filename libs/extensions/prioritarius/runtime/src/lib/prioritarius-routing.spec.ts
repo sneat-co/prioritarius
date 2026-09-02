@@ -1,14 +1,8 @@
 import { prioritariusRoutes } from './prioritarius-routing';
 
 describe('prioritariusRoutes', () => {
-  it('exposes the lists overview route', () => {
-    expect(prioritariusRoutes.some((r) => r.path === 'lists')).toBe(true);
-  });
-
-  it('exposes the list detail route with listType + listID params', () => {
-    expect(
-      prioritariusRoutes.some((r) => r.path === 'list/:listType/:listID'),
-    ).toBe(true);
+  it('exposes exactly the maps overview route', () => {
+    expect(prioritariusRoutes.map((r) => r.path)).toEqual(['maps']);
   });
 
   it('lazy-loads every route via loadComponent', () => {
