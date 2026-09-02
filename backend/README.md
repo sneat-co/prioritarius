@@ -18,19 +18,23 @@ anywhere, no GOPRIVATE needed).
 
 ## What's here
 
-This scaffold ships one placeholder vertical slice, wired end to end, so
-`go build ./...` and `go test ./...` prove the shape works before you write
-anything real:
+The real domain module for the goal/project/work-item graph described in
+`backstage/spec/features/prioritarius/domain-model/README.md`, ported from the
+TypeScript reference implementation at `prioritarius/libs/core` (same
+semantics — DAG enforcement, commitment lifecycle, completion — mirrored
+exactly, not redesigned):
 
 | Package | What it is |
 |---|---|
 | `const4prioritarius` | Extension ID (plain string constant) |
-| `models4prioritarius` | A placeholder DBO + dalgo key builder |
-| `facade4prioritarius` | `Facade` (injected `dal.DB` + ports) and one example command, `CreateExampleItem` |
+| `models4prioritarius` | The workspace/node/edge DBOs and dalgo key builder — one Firestore document per Space at `/spaces/{spaceID}/ext/prioritarius` (see `WorkspaceDbo`'s doc comment for why one document, not one per node/edge) |
+| `facade4prioritarius` | `Facade` (injected `dal.DB` + ports) and every application command: `CreateNode`, `UpdateNode`, `DeleteNode`, `CreateEdge` (server-side DAG invariant, named-path cycle rejection), `DeleteEdge`, `SetGoalOrder`, `ApplyTemplate` |
+| `api4prioritarius` | Thin HTTP layer mounting every command under `/v0/prioritarius/...` (see its package doc comment for the full request/response contract) |
 
-**Delete the placeholder as you build real domain logic.** Nothing here is
-product code — it exists to prove the wiring, the way `Home.astro`'s example
-copy in `landings/` does for the frontend.
+Reads are Firestore-direct from the client (gated by `../firestore.rules`);
+every write goes through `api4prioritarius` (founder ruling 2026-09-02: "all
+writes in sneat always go throw sneat-go backend https endpoints. No
+exceptions.").
 
 ## Adding a real port
 
