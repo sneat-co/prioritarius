@@ -1,8 +1,8 @@
 import { prioritariusRoutes } from './prioritarius-routing';
 
 describe('prioritariusRoutes', () => {
-  it('exposes exactly the maps overview route', () => {
-    expect(prioritariusRoutes.map((r) => r.path)).toEqual(['maps']);
+  it('exposes exactly the goals overview route', () => {
+    expect(prioritariusRoutes.map((r) => r.path)).toEqual(['goals']);
   });
 
   it('lazy-loads every route via loadComponent', () => {

@@ -29,16 +29,16 @@
     </ion-select>
   </ion-item>
 
-  <!-- Maps of the selected space. -->
+  <!-- Goals of the selected space. -->
   <ion-item
     tappable
-    [routerLink]="spacePageUrl('maps')"
+    [routerLink]="spacePageUrl('goals')"
     routerDirection="root"
     [disabled]="$disabled()"
     (click)="closeMenu()"
   >
     <ion-icon name="map-outline" slot="start" />
-    <ion-label>Maps</ion-label>
+    <ion-label>Goals</ion-label>
   </ion-item>
 
   <sneat-auth-menu-item />
