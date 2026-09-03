@@ -17,34 +17,34 @@ overrides:
   '@angular-devkit/schematics': 22.1.5 # keep in sync with the @angular/build devDependency pin
   '@angular/platform-server': 22.1.3
   '@angular/platform-browser-dynamic': 22.1.3
-  '@sneat/api-firebase-auth': 0.26.4
-  '@sneat/api-public': 0.26.4
-  '@sneat/app-auth': 0.26.4
-  '@sneat/app-ionic': 0.26.4
-  '@sneat/app-public': 0.26.4
-  '@sneat/core-public': 0.26.4
-  '@sneat/extension-calendarius-internal': 0.26.4
-  '@sneat/extension-calendarius-shared': 0.26.4
-  '@sneat/space-nav-ionic': 0.26.4
-  '@sneat/space-nav-router': 0.26.4
+  '@sneat/api-firebase-auth': 0.27.8
+  '@sneat/api-public': 0.27.8
+  '@sneat/app-auth': 0.27.8
+  '@sneat/app-ionic': 0.27.8
+  '@sneat/app-public': 0.27.8
+  '@sneat/core-public': 0.27.8
+  '@sneat/extension-calendarius-internal': 0.27.2
+  '@sneat/extension-calendarius-shared': 0.27.2
+  '@sneat/space-nav-ionic': 0.27.8
+  '@sneat/space-nav-router': 0.27.8
   # @sneat/* framework libraries — all on the version this app depends on.
-  '@sneat/api': 0.26.4
-  '@sneat/app': 0.26.4
-  '@sneat/auth-core': 0.26.4
-  '@sneat/auth-models': 0.26.4
-  '@sneat/auth-ui': 0.26.4
-  '@sneat/components': 0.26.4
-  '@sneat/core': 0.26.4
-  '@sneat/data': 0.26.4
-  '@sneat/datagrid': 0.26.4
-  '@sneat/dto': 0.26.4
-  '@sneat/grid': 0.26.4
-  '@sneat/logging': 0.26.4
-  '@sneat/space-components': 0.26.4
-  '@sneat/space-models': 0.26.4
-  '@sneat/space-services': 0.26.4
-  '@sneat/ui': 0.26.4
-  '@sneat/wizard': 0.26.4
+  '@sneat/api': 0.27.8
+  '@sneat/app': 0.27.8
+  '@sneat/auth-core': 0.27.8
+  '@sneat/auth-models': 0.27.8
+  '@sneat/auth-ui': 0.27.8
+  '@sneat/components': 0.27.8
+  '@sneat/core': 0.27.8
+  '@sneat/data': 0.27.8
+  '@sneat/datagrid': 0.27.8
+  '@sneat/dto': 0.27.8
+  '@sneat/grid': 0.27.8
+  '@sneat/logging': 0.27.8
+  '@sneat/space-components': 0.27.8
+  '@sneat/space-models': 0.27.8
+  '@sneat/space-services': 0.27.8
+  '@sneat/ui': 0.27.8
+  '@sneat/wizard': 0.27.8
   # @angular/* runtime packages — the older extension peers pull 21.2.9, which
   # fractures HttpParams and friends against this app's 21.2.19. Also collapses
   # the second @angular/core variant that @angular/fire@20 ->
