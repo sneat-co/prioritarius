@@ -38,6 +38,7 @@ func (h *Handler) RegisterHttpRoutes(handle func(method, path string, handler ht
 	handle(http.MethodPost, "/v0/prioritarius/delete_edge", h.httpDeleteEdge)
 	handle(http.MethodPost, "/v0/prioritarius/set_goal_order", h.httpSetGoalOrder)
 	handle(http.MethodPost, "/v0/prioritarius/apply_template", h.httpApplyTemplate)
+	handle(http.MethodPost, "/v0/prioritarius/list_templates", h.httpListTemplates)
 }
 
 // caller extracts the authenticated userID from the Authorization header.

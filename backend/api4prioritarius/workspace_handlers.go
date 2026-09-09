@@ -39,3 +39,18 @@ func (h *Handler) httpApplyTemplate(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusCreated, resp)
 }
+
+// httpListTemplates takes no request body — the catalog is static and
+// identical for every caller, so there is nothing to decode.
+func (h *Handler) httpListTemplates(w http.ResponseWriter, r *http.Request) {
+	userID, ok := h.caller(r)
+	if !ok {
+		writeUnauthorized(w)
+		return
+	}
+	resp, err := h.facade.ListTemplates(r.Context(), userID)
+	if handleFacadeError(w, err) {
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
