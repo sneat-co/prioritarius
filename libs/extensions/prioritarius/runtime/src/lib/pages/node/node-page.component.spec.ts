@@ -105,11 +105,7 @@ describe('NodePageComponent', () => {
       component as unknown as { deleteNode(): Promise<void> }
     ).deleteNode();
 
-    expect(storeStub.deleteNode).toHaveBeenCalledWith(
-      'space-1',
-      workspace,
-      'goal-1',
-    );
+    expect(storeStub.deleteNode).toHaveBeenCalledWith('space-1', 'goal-1');
     expect(navStub.navigateBackToSpacePage).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'space-1' }),
       'outline',

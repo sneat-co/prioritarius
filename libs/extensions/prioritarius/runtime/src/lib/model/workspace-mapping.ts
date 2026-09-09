@@ -1,40 +1,38 @@
 import {
   addEdge,
-  addNode,
-  createWorkspace,
   CycleError,
-  Deadline,
   Edge,
-  Estimate,
   EstimateUnit,
+  EdgeType,
   NewEdgeInput,
   PrioritariusNode,
   Workspace,
 } from '@sneat/prioritarius-core';
 import {
-  edgeDocId,
   IPrioritariusEdgeDbo,
   IPrioritariusNodeDbo,
   IPrioritariusWorkspaceDbo,
 } from './workspace-dbo';
+import { IApiErrorBody } from './api-contracts';
 
 /**
- * Explicit core-type <-> Firestore-document mapping. Every function here is
- * pure and framework-free (no Firestore import) so it is trivially unit
- * tested — the goal is that a Workspace is never persisted "by structural
- * accident" (e.g. `JSON.stringify`-ing the core value): every field
- * crossing the boundary passes through a named mapper.
+ * Explicit core-type <-> backend-DBO mapping. Every function here is pure
+ * and framework-free (no Firestore/HTTP import) so it is trivially unit
+ * tested — a Workspace is never persisted or reassembled "by structural
+ * accident": every field crossing the boundary passes through a named
+ * mapper. The backend (backend/models4prioritarius) is the schema's source
+ * of truth; this module is a hand-written mirror of it, not a codegen
+ * output, so keep the two in sync by hand when either changes.
  */
 
 export function nodeToDbo(node: PrioritariusNode): IPrioritariusNodeDbo {
   const common = {
+    id: node.id,
     kind: node.kind,
     title: node.title,
     description: node.description,
-    ownEstimateValue: node.ownEstimate?.value,
-    ownEstimateUnit: node.ownEstimate?.unit,
-    deadlineDate: node.deadline?.date,
-    deadlineHard: node.deadline?.hard,
+    ownEstimate: node.ownEstimate,
+    deadline: node.deadline,
   };
   if (node.kind === 'work_item') {
     return { ...common, status: node.status, doneAt: node.doneAt };
@@ -47,23 +45,13 @@ export function nodeToDbo(node: PrioritariusNode): IPrioritariusNodeDbo {
   };
 }
 
-export function dboToNode(
-  id: string,
-  dbo: IPrioritariusNodeDbo,
-): PrioritariusNode {
-  const ownEstimate: Estimate | undefined =
-    dbo.ownEstimateValue !== undefined && dbo.ownEstimateUnit !== undefined
-      ? { value: dbo.ownEstimateValue, unit: dbo.ownEstimateUnit }
-      : undefined;
-  const deadline: Deadline | undefined = dbo.deadlineDate
-    ? { date: dbo.deadlineDate, hard: dbo.deadlineHard ?? false }
-    : undefined;
+export function dboToNode(dbo: IPrioritariusNodeDbo): PrioritariusNode {
   const base = {
-    id,
+    id: dbo.id,
     title: dbo.title,
     description: dbo.description,
-    ownEstimate,
-    deadline,
+    ownEstimate: dbo.ownEstimate,
+    deadline: dbo.deadline,
   };
   if (dbo.kind === 'work_item') {
     return {
@@ -95,109 +83,79 @@ export function dboToEdge(dbo: IPrioritariusEdgeDbo): Edge {
   return { from: dbo.from, to: dbo.to, type: dbo.type, strength: dbo.strength };
 }
 
-export function workspaceMetaToDbo(
-  workspace: Pick<Workspace, 'unit' | 'committedGoalOrder'>,
-  updatedAt: string,
-): IPrioritariusWorkspaceDbo {
-  return {
-    unit: workspace.unit,
-    committedGoalOrder: workspace.committedGoalOrder,
-    updatedAt,
-  };
-}
-
-export interface RawWorkspaceDocs {
-  readonly meta: IPrioritariusWorkspaceDbo | undefined;
-  readonly nodes: ReadonlyArray<{
-    readonly id: string;
-    readonly dbo: IPrioritariusNodeDbo;
-  }>;
-  readonly edges: ReadonlyArray<{
-    readonly id: string;
-    readonly dbo: IPrioritariusEdgeDbo;
-  }>;
-}
-
 /**
- * Reassembles a core {@link Workspace} value from raw Firestore documents.
- * Nodes/edges are inserted directly (not via `addNode`/`addEdge`) because
- * those mutators encode "create new" defaulting rules (e.g. a fresh
- * goal/project is never `completed`) that would silently corrupt already
- * -persisted state on every reload; `committedGoalOrder` is taken verbatim
- * from the meta doc, since that field is the user's own explicit reordering,
- * not something a rebuild should re-derive from insertion order.
+ * Reassembles a core {@link Workspace} value from the single backend
+ * document (`/spaces/{spaceID}/ext/prioritarius`). A missing document
+ * (`undefined`) means an empty workspace — the backend's `NewWorkspaceDbo`
+ * default — never an error.
+ *
+ * Nodes are inserted directly (not via `addNode`) because that mutator
+ * encodes "create new" defaulting rules (e.g. a fresh goal/project is never
+ * `completed`) that would silently corrupt already-persisted state on every
+ * reload; `committedGoalOrder` is taken verbatim from the document, since
+ * that field is the user's own explicit reordering, not something a rebuild
+ * should re-derive from map iteration order.
  */
-export function assembleWorkspace(docs: RawWorkspaceDocs): Workspace {
-  const unit: EstimateUnit = docs.meta?.unit ?? 'days';
+export function assembleWorkspace(
+  doc: IPrioritariusWorkspaceDbo | undefined,
+): Workspace {
+  const unit: EstimateUnit = doc?.unit ?? 'days';
   const nodes = new Map<string, PrioritariusNode>();
-  for (const { id, dbo } of docs.nodes) {
-    nodes.set(id, dboToNode(id, dbo));
+  for (const dbo of Object.values(doc?.nodes ?? {})) {
+    if (dbo) {
+      nodes.set(dbo.id, dboToNode(dbo));
+    }
   }
-  const edges = docs.edges.map(({ dbo }) => dboToEdge(dbo));
+  const edges = (doc?.edges ?? []).map(dboToEdge);
   return {
     unit,
     nodes,
     edges,
-    committedGoalOrder: docs.meta?.committedGoalOrder ?? [],
+    committedGoalOrder: doc?.committedGoalOrder ?? [],
   };
 }
 
-export type ConnectEdgePlan =
-  | {
-      readonly kind: 'ok';
-      readonly workspace: Workspace;
-      readonly edgeDoc: {
-        readonly id: string;
-        readonly dbo: IPrioritariusEdgeDbo;
-      };
-    }
-  | { readonly kind: 'cycle-rejected'; readonly error: CycleError };
-
 /**
- * Wraps the core's `addEdge` (the DAG-invariant enforcement lives there and
- * is never reimplemented here) and produces the exact Firestore write the
- * caller should perform on success — the store layer never decides the
- * document id/shape ad hoc.
+ * Fast client-side pre-check only — the backend's `create_edge` enforces
+ * the DAG invariant authoritatively (server transaction sees the latest
+ * committed state; this runs against whatever workspace snapshot the UI
+ * currently holds, which can be stale). Reuses the core's own `addEdge`
+ * cycle detection so the two never disagree on the algorithm, only
+ * possibly on freshness. Returns `undefined` when the local check finds no
+ * cycle (the request should still be sent — the server has the last word).
  */
-export function planConnectEdge(
+export function localCycleCheck(
   workspace: Workspace,
   input: NewEdgeInput,
-): ConnectEdgePlan {
+): CycleError | undefined {
   const result = addEdge(workspace, input);
-  if (result.kind === 'cycle-rejected') {
-    return result;
-  }
-  return {
-    kind: 'ok',
-    workspace: result.workspace,
-    edgeDoc: {
-      id: edgeDocId(input),
-      dbo: edgeToDbo({
-        from: input.from,
-        to: input.to,
-        type: input.type,
-        strength: input.strength,
-      }),
-    },
-  };
+  return result.kind === 'cycle-rejected' ? result.error : undefined;
 }
 
 /**
- * Builds a fully-defaulted node (via the core's own `addNode`, on a scratch
- * empty workspace so no unrelated state leaks in) and its Firestore doc in
- * one step, so every "create" path reuses the core's defaulting rules
- * (open/exploring/etc.) instead of restating them here.
+ * Maps a 409 `cycle_rejected` API error body to the same {@link CycleError}
+ * shape the core engine's local pre-check produces, so the UI renders
+ * exactly one code path for "an edge was rejected as a cycle" regardless of
+ * whether the rejection was caught locally or authoritatively by the
+ * server (see api4prioritarius's CycleError.Error() — same message format,
+ * "A → B → C").
  */
-export function planCreateNode(input: Parameters<typeof addNode>[1]): {
-  readonly node: PrioritariusNode;
-  readonly dbo: IPrioritariusNodeDbo;
-} {
-  const scratch = addNode(createWorkspace(), input);
-  const node = scratch.nodes.get(input.id);
-  if (!node) {
-    // Unreachable: addNode either throws (duplicate id, impossible on an
-    // empty scratch workspace) or inserts the node under its own id.
-    throw new Error(`planCreateNode: node "${input.id}" missing after addNode`);
-  }
-  return { node, dbo: nodeToDbo(node) };
+export function cycleErrorFromApiError(
+  body: IApiErrorBody,
+  attempted: {
+    readonly from: string;
+    readonly to: string;
+    readonly type: EdgeType;
+  },
+): CycleError {
+  const path = body.path ?? [];
+  return {
+    kind: 'cycle-rejected',
+    edgeType: attempted.type,
+    attempted: { from: attempted.from, to: attempted.to },
+    path,
+    message:
+      body.message ||
+      `Adding "${attempted.from}" -${attempted.type}-> "${attempted.to}" would close a cycle via the existing path ${path.join(' → ')}`,
+  };
 }

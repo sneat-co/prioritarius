@@ -26,12 +26,13 @@ import { IonTitle } from '@ionic/angular/ion-title';
 import { IonToolbar } from '@ionic/angular/ion-toolbar';
 import { ItemReorderCustomEvent } from '@ionic/core';
 import {
-  NewNodeInput,
+  NodeKind,
   PrioritariusNode,
   Workspace,
 } from '@sneat/prioritarius-core';
 import { spacePageUrl } from '@sneat/space-components';
 import { SpaceNavService } from '@sneat/space-services';
+import { IWorkspaceTemplateSummary } from '../../model/api-contracts';
 import {
   describeNodeFigures,
   hoursToDisplayDays,
@@ -43,8 +44,10 @@ import {
   isNodeCompleted,
   nodeKindLabel,
 } from '../../model/node-guards';
-import { WORKSPACE_TEMPLATES, WorkspaceTemplate } from '../../model/templates';
-import { PrioritariusWorkspaceStore } from '../../workspace/prioritarius-workspace.store';
+import {
+  CreateNodeInput,
+  PrioritariusWorkspaceStore,
+} from '../../workspace/prioritarius-workspace.store';
 import { spaceContextFromRoute } from '../route-space-context';
 
 interface OutlineRow {
@@ -110,8 +113,14 @@ export class OutlinePageComponent {
   private readonly spaceNav = inject(SpaceNavService);
 
   protected readonly space = spaceContextFromRoute(this.route);
-  protected readonly templates: readonly WorkspaceTemplate[] =
-    WORKSPACE_TEMPLATES;
+
+  /** Driven by `list_templates`, never a hard-coded catalog, so a preview
+   * can never drift from what `apply_template` actually creates. Empty
+   * until the endpoint answers; stays empty (hiding the template option
+   * entirely) if it's not deployed yet or the call fails for any reason. */
+  protected readonly $templates = signal<readonly IWorkspaceTemplateSummary[]>(
+    [],
+  );
 
   protected readonly $workspace = toSignal<Workspace | undefined>(
     this.store.watchWorkspace(this.space.id),
@@ -166,6 +175,14 @@ export class OutlinePageComponent {
   protected readonly isNodeCompleted = isNodeCompleted;
   protected readonly nodeKindLabel = nodeKindLabel;
 
+  constructor() {
+    void this.loadTemplates();
+  }
+
+  private async loadTemplates(): Promise<void> {
+    this.$templates.set(await this.store.listTemplates());
+  }
+
   private rowFor(workspace: Workspace, id: string): OutlineRow {
     const node = workspace.nodes.get(id);
     if (!node) throw new Error(`unreachable: row for missing node ${id}`);
@@ -185,37 +202,25 @@ export class OutlinePageComponent {
   protected async createGoal(): Promise<void> {
     const title = this.newGoalTitle.trim();
     if (!title) return;
-    await this.createNodeAndNavigate({
-      id: crypto.randomUUID(),
-      kind: 'goal',
-      title,
-    });
+    await this.createNodeAndNavigate({ kind: 'goal', title });
     this.newGoalTitle = '';
   }
 
   protected async createProject(): Promise<void> {
     const title = this.newProjectTitle.trim();
     if (!title) return;
-    await this.createNodeAndNavigate({
-      id: crypto.randomUUID(),
-      kind: 'project',
-      title,
-    });
+    await this.createNodeAndNavigate({ kind: 'project', title });
     this.newProjectTitle = '';
   }
 
   protected async createWorkItem(): Promise<void> {
     const title = this.newWorkItemTitle.trim();
     if (!title) return;
-    await this.createNodeAndNavigate({
-      id: crypto.randomUUID(),
-      kind: 'work_item',
-      title,
-    });
+    await this.createNodeAndNavigate({ kind: 'work_item', title });
     this.newWorkItemTitle = '';
   }
 
-  private async createNodeAndNavigate(input: NewNodeInput): Promise<void> {
+  private async createNodeAndNavigate(input: CreateNodeInput): Promise<void> {
     this.$busy.set(true);
     try {
       const node = await this.store.createNode(this.space.id, input);
@@ -228,22 +233,22 @@ export class OutlinePageComponent {
       );
     } catch (error) {
       this.$errorMessage.set(
-        `Could not create ${input.kind.replace('_', ' ')}: ${describeError(error)}`,
+        `Could not create ${describeKind(input.kind)}: ${describeError(error)}`,
       );
     } finally {
       this.$busy.set(false);
     }
   }
 
-  protected async applyTemplate(template: WorkspaceTemplate): Promise<void> {
-    const workspace = this.$workspace();
-    if (!workspace) return;
+  protected async applyTemplate(
+    template: IWorkspaceTemplateSummary,
+  ): Promise<void> {
     this.$busy.set(true);
     try {
-      await this.store.applyTemplate(this.space.id, workspace, template);
+      await this.store.applyTemplate(this.space.id, template.id);
     } catch (error) {
       this.$errorMessage.set(
-        `Could not apply template "${template.label}": ${describeError(error)}`,
+        `Could not apply template "${template.title}": ${describeError(error)}`,
       );
     } finally {
       this.$busy.set(false);
@@ -251,8 +256,6 @@ export class OutlinePageComponent {
   }
 
   protected async deleteRow(row: OutlineRow): Promise<void> {
-    const workspace = this.$workspace();
-    if (!workspace) return;
     if (
       !confirm(
         `Delete "${row.node.title}"? This also removes any connections to it.`,
@@ -262,7 +265,7 @@ export class OutlinePageComponent {
     }
     this.$busy.set(true);
     try {
-      await this.store.deleteNode(this.space.id, workspace, row.id);
+      await this.store.deleteNode(this.space.id, row.id);
     } catch (error) {
       this.$errorMessage.set(
         `Could not delete "${row.node.title}": ${describeError(error)}`,
@@ -280,27 +283,23 @@ export class OutlinePageComponent {
    * (REQ:goal-ordering: "reorderable by drag"; "no numeric priority field
    * is ever entered" — this IS the priority statement). `detail.complete`
    * both finalizes the DOM move and, given the current order, returns the
-   * reordered array. */
+   * reordered array — which the backend validates is exactly the current
+   * committed set before applying it. */
   protected async onCommittedGoalsReordered(
     event: ItemReorderCustomEvent,
   ): Promise<void> {
-    const workspace = this.$workspace();
-    if (!workspace) {
-      event.detail.complete();
-      return;
-    }
     const currentOrder = this.$committedGoals().map((row) => row.id);
     const reordered = event.detail.complete(currentOrder) as string[];
     try {
-      await this.store.reorderCommittedGoals(
-        this.space.id,
-        workspace,
-        reordered,
-      );
+      await this.store.reorderCommittedGoals(this.space.id, reordered);
     } catch (error) {
       this.$errorMessage.set(
         `Could not save the new order: ${describeError(error)}`,
       );
     }
   }
+}
+
+function describeKind(kind: NodeKind): string {
+  return kind.replace('_', ' ');
 }

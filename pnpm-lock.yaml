@@ -392,6 +392,9 @@ importers:
       '@ionic/core':
         specifier: 9.0.0
         version: 9.0.0
+      '@sneat/api':
+        specifier: 0.26.4
+        version: 0.26.4(c0d6bcf44dc216e5b538338bfb34f791)
       '@sneat/auth-core':
         specifier: 0.26.4
         version: 0.26.4(9ddff6fedb3e610cad6d13917f7153bf)

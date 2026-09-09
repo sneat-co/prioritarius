@@ -237,16 +237,9 @@ export class NodePageComponent {
   }
 
   protected onCommitmentChange(event: Event): void {
-    const workspace = this.$workspace();
-    if (!workspace) return;
     const commitment = ionValue(event) as CommitmentState;
     void this.runOrReportError(() =>
-      this.store.updateCommitment(
-        this.space.id,
-        workspace,
-        this.nodeId,
-        commitment,
-      ),
+      this.store.updateCommitment(this.space.id, this.nodeId, commitment),
     );
   }
 
@@ -255,12 +248,7 @@ export class NodePageComponent {
     if (!node) return;
     const completed = Boolean((event as CustomEvent).detail?.checked);
     void this.runOrReportError(() =>
-      this.store.setNodeCompletion(
-        this.space.id,
-        node,
-        completed,
-        completed ? new Date().toISOString() : undefined,
-      ),
+      this.store.setNodeCompletion(this.space.id, node, completed),
     );
   }
 
@@ -269,11 +257,7 @@ export class NodePageComponent {
     if (!node || node.kind !== 'work_item') return;
     if (node.status === 'open') {
       await this.runOrReportError(() =>
-        this.store.completeWorkItem(
-          this.space.id,
-          node,
-          new Date().toISOString(),
-        ),
+        this.store.completeWorkItem(this.space.id, node),
       );
     } else {
       await this.runOrReportError(() =>
@@ -317,18 +301,18 @@ export class NodePageComponent {
   }
 
   protected async deleteNode(): Promise<void> {
-    const workspace = this.$workspace();
     const node = this.$node();
-    if (!workspace || !node) return;
+    if (!node) return;
     if (
       !confirm(
         `Delete "${node.title}"? This also removes any connections to it.`,
       )
-    )
+    ) {
       return;
+    }
     this.$busy.set(true);
     try {
-      await this.store.deleteNode(this.space.id, workspace, this.nodeId);
+      await this.store.deleteNode(this.space.id, this.nodeId);
       await this.spaceNav.navigateBackToSpacePage(this.space, 'outline', {
         replaceUrl: true,
       });
@@ -345,7 +329,9 @@ export class NodePageComponent {
     return spacePageUrl(this.space, page);
   }
 
-  private async runOrReportError(action: () => Promise<void>): Promise<void> {
+  private async runOrReportError(
+    action: () => Promise<unknown>,
+  ): Promise<void> {
     this.$busy.set(true);
     try {
       await action();

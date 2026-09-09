@@ -6,39 +6,48 @@ import {
 } from '@sneat/prioritarius-core';
 
 /**
- * Firestore document shapes for this extension's data. The workspace root is
- * the real Sneat Space's own per-extension document —
- * `/spaces/{spaceID}/ext/prioritarius` — which is already the exact shape
- * REQ:workspace names, so there is no later "relocation": {@link
- * workspaceDocPath} is simply the one seam that would ever change. String
- * doc IDs throughout (Firestore auto/caller-supplied ids), no global
- * namespace assumptions (everything is scoped under the space), and no
- * hard-coded "ownerId" field — ownership is the Space's own member-role
- * model (a Space already has owner/editor/... members), so this extension's
- * documents never duplicate that concept.
+ * Firestore document shape for this extension's data — mirrors
+ * backend/models4prioritarius/workspace.go (WorkspaceDbo/NodeDbo/EdgeDbo)
+ * exactly, field for field. The ENTIRE graph for one Space is ONE document
+ * at `/spaces/{spaceID}/ext/prioritarius` (not one doc per node/edge): the
+ * DAG invariant and cascading delete must never be partially applied, and a
+ * single document read+write inside one backend transaction gives that for
+ * free. `workspaceDocPath` is the one seam that would ever move this.
+ *
+ * Founder ruling 2026-09-02, verbatim: "All writes in sneat always go throw
+ * sneat-go backend https endpoints. No exceptions." — this document is
+ * READ directly from Firestore (gated by firestore.rules: a Space member
+ * may read, nobody may write), but every mutation goes through
+ * backend/api4prioritarius's HTTP endpoints. See
+ * ../workspace/prioritarius-workspace.store.ts.
  */
 
-/** `spaces/{spaceID}/ext/prioritarius` — one per space. Doc id is the
- * extension id, the org convention for a space's per-extension state. */
-export interface IPrioritariusWorkspaceDbo {
+/** A nested own (manually entered) estimate — matches
+ * models4prioritarius.Estimate's `{value, unit}` JSON shape exactly (never
+ * flattened; the backend serializes it as a nested object). */
+export interface IPrioritariusEstimateDbo {
+  readonly value: number;
   readonly unit: EstimateUnit;
-  readonly committedGoalOrder: readonly string[];
-  readonly updatedAt: string;
 }
 
-/** `spaces/{spaceID}/ext/prioritarius/nodes/{nodeID}`. Flattened for
- * Firestore: `ownEstimate`/`deadline` become sibling scalar fields (nested
- * value objects with `undefined` members don't round-trip through
- * `setDoc`), and kind-specific fields are simply absent for the other kind
- * rather than nested in a union. */
+/** Matches models4prioritarius.Deadline's `{date, hard}` JSON shape. */
+export interface IPrioritariusDeadlineDbo {
+  readonly date: string;
+  readonly hard: boolean;
+}
+
+/** One graph node — matches models4prioritarius.NodeDbo. All three kinds
+ * share this shape; `kind` discriminates which of the kind-specific fields
+ * are meaningful (goal/project: commitment/completed/completedAt; work_item:
+ * status/doneAt). The backend omits zero-value fields (Go `omitempty`), so
+ * every optional field here is genuinely optional on the wire. */
 export interface IPrioritariusNodeDbo {
+  readonly id: string;
   readonly kind: NodeKind;
   readonly title: string;
   readonly description?: string;
-  readonly ownEstimateValue?: number;
-  readonly ownEstimateUnit?: EstimateUnit;
-  readonly deadlineDate?: string;
-  readonly deadlineHard?: boolean;
+  readonly ownEstimate?: IPrioritariusEstimateDbo;
+  readonly deadline?: IPrioritariusDeadlineDbo;
   // work_item only
   readonly status?: 'open' | 'done';
   readonly doneAt?: string;
@@ -48,7 +57,8 @@ export interface IPrioritariusNodeDbo {
   readonly completedAt?: string;
 }
 
-/** `spaces/{spaceID}/ext/prioritarius/edges/{edgeID}`. */
+/** One directed edge — matches models4prioritarius.EdgeDbo. There is no
+ * separate edge id; an edge is identified by its (from, to, type) triple. */
 export interface IPrioritariusEdgeDbo {
   readonly from: string;
   readonly to: string;
@@ -56,32 +66,25 @@ export interface IPrioritariusEdgeDbo {
   readonly strength?: number;
 }
 
-/** Deterministic doc id: one edge per (type, from, to) pair, so re-adding
- * never duplicates and removal never needs a query. */
-export function edgeDocId(edge: {
-  readonly from: string;
-  readonly to: string;
-  readonly type: EdgeType;
-}): string {
-  return `${edge.type}__${edge.from}__${edge.to}`;
+/** The whole-workspace document — matches models4prioritarius.WorkspaceDbo.
+ * A missing document (a Space that has never had a node created in it)
+ * means an empty workspace, not an error — the backend's `NewWorkspaceDbo`
+ * default and this client's read path agree on that. */
+export interface IPrioritariusWorkspaceDbo {
+  readonly unit: EstimateUnit;
+  readonly nodes: Readonly<Record<string, IPrioritariusNodeDbo>>;
+  readonly edges: readonly IPrioritariusEdgeDbo[];
+  readonly committedGoalOrder: readonly string[];
 }
 
 export function workspaceDocPath(spaceID: string): string {
   return `spaces/${spaceID}/ext/prioritarius`;
 }
 
-export function nodesCollectionPath(spaceID: string): string {
-  return `${workspaceDocPath(spaceID)}/nodes`;
-}
-
-export function edgesCollectionPath(spaceID: string): string {
-  return `${workspaceDocPath(spaceID)}/edges`;
-}
-
-/** Firestore rejects `undefined` field values in `setDoc`/`updateDoc`; strip
- * them so an absent optional (e.g. no deadline) is simply omitted rather
- * than throwing. A full (non-merge) `setDoc` of a stripped DBO therefore
- * also correctly clears a field the caller just removed. */
+/** Firestore/JSON round-tripping helper: strip `undefined` fields from an
+ * outgoing request body so an absent optional is genuinely absent on the
+ * wire (matters for the backend's pointer-present-means-set convention on
+ * `update_node` — see prioritarius-workspace.store.ts). */
 export function stripUndefinedFields<T extends object>(value: T): Partial<T> {
   const result: Partial<T> = {};
   for (const key of Object.keys(value) as (keyof T)[]) {

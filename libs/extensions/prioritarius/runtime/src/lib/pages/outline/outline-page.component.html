@@ -33,26 +33,27 @@
       </ion-button>
     </ion-item>
 
-    <h2>Or start with a template</h2>
-    <ion-list>
-      @for (template of templates; track template.id) {
-        <ion-item lines="full">
-          <ion-label>
-            <h3>{{ template.label }}</h3>
-            <p>{{ template.description }}</p>
-            <p><em>Creates:</em> {{ template.goalTitles.join(', ') }}</p>
-          </ion-label>
-          <ion-button
-            slot="end"
-            fill="outline"
-            [disabled]="$busy()"
-            (click)="applyTemplate(template)"
-          >
-            Use template
-          </ion-button>
-        </ion-item>
-      }
-    </ion-list>
+    @if ($templates().length > 0) {
+      <h2>Or start with a template</h2>
+      <ion-list>
+        @for (template of $templates(); track template.id) {
+          <ion-item lines="full">
+            <ion-label>
+              <h3>{{ template.title }}</h3>
+              <p><em>Creates:</em> {{ template.goalTitles.join(', ') }}</p>
+            </ion-label>
+            <ion-button
+              slot="end"
+              fill="outline"
+              [disabled]="$busy()"
+              (click)="applyTemplate(template)"
+            >
+              Use template
+            </ion-button>
+          </ion-item>
+        }
+      </ion-list>
+    }
   } @else {
     <ion-list>
       <ion-list-header>
