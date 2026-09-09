@@ -1,0 +1,205 @@
+<ion-header>
+  <ion-toolbar color="light">
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="spacePageUrl('outline')" text="Outline" />
+    </ion-buttons>
+    <ion-title>{{ $node()?.title || 'Node' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+<ion-content class="ion-padding">
+  @if ($errorMessage(); as message) {
+    <ion-note color="danger">{{ message }}</ion-note>
+  }
+
+  @if ($notFound()) {
+    <p>This item no longer exists.</p>
+    <ion-button [routerLink]="spacePageUrl('outline')"
+      >Back to outline</ion-button
+    >
+  } @else if ($node(); as node) {
+    <ion-list>
+      <ion-item lines="full">
+        <ion-label position="stacked"
+          >{{ nodeKindLabel(node) }} title</ion-label
+        >
+        <ion-input [value]="node.title" (ionChange)="onTitleChange($event)" />
+      </ion-item>
+      <ion-item lines="full">
+        <ion-label position="stacked">Description</ion-label>
+        <ion-textarea
+          [value]="node.description"
+          (ionChange)="onDescriptionChange($event)"
+        />
+      </ion-item>
+
+      <ion-item lines="full">
+        <ion-label position="stacked">Own estimate</ion-label>
+        <ion-input
+          type="number"
+          min="0"
+          [value]="node.ownEstimate?.value"
+          (ionChange)="onEstimateValueChange($event)"
+        />
+        <ion-select
+          slot="end"
+          [value]="node.ownEstimate?.unit ?? $workspace()?.unit ?? 'days'"
+          [disabled]="node.ownEstimate === undefined"
+          (ionChange)="onEstimateUnitChange($event)"
+        >
+          <ion-select-option value="days">days</ion-select-option>
+          <ion-select-option value="hours">hours</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      @if ($figures(); as figures) {
+        <ion-item lines="full">
+          <ion-label>
+            <p>
+              Effective estimate:
+              {{ hoursToDisplayDays(figures.effective.hours) }}d ({{
+                figures.effective.source
+              }})
+              @if (figures.effective.discrepancy) {
+                <ion-badge color="warning">discrepancy</ion-badge>
+              }
+            </p>
+            @if (
+              figures.topDownDays !== undefined &&
+              figures.bottomUpDays !== undefined
+            ) {
+              <p>
+                Top-down {{ figures.topDownDays }}d vs bottom-up
+                {{ figures.bottomUpDays }}d
+              </p>
+            }
+            <p>Progress: {{ (figures.progress.ratio * 100).toFixed(0) }}%</p>
+            @if (figures.unestimatedInClosure > 0) {
+              <ion-badge color="warning"
+                >{{ figures.unestimatedInClosure }} unestimated</ion-badge
+              >
+            }
+          </ion-label>
+        </ion-item>
+      }
+
+      <ion-item lines="full">
+        <ion-label position="stacked">Deadline</ion-label>
+        <input
+          type="date"
+          [value]="node.deadline?.date ?? ''"
+          (change)="onDeadlineDateChange($event)"
+        />
+        @if (node.deadline) {
+          <ion-checkbox
+            slot="end"
+            [checked]="node.deadline.hard"
+            (ionChange)="onDeadlineHardChange($event)"
+          >
+            Hard
+          </ion-checkbox>
+        }
+      </ion-item>
+
+      @if (commitmentOf(node); as commitment) {
+        <ion-item lines="full">
+          <ion-label position="stacked">Commitment</ion-label>
+          <ion-select
+            [value]="commitment"
+            (ionChange)="onCommitmentChange($event)"
+          >
+            <ion-select-option value="committed">Committed</ion-select-option>
+            <ion-select-option value="exploring">Exploring</ion-select-option>
+            <ion-select-option value="parked">Parked</ion-select-option>
+          </ion-select>
+        </ion-item>
+      }
+
+      @if (isWorkItem(node)) {
+        <ion-item lines="full">
+          <ion-label>Status: {{ node.status }}</ion-label>
+          <ion-button slot="end" (click)="toggleWorkItemDone()">
+            {{ node.status === 'open' ? 'Mark done' : 'Reopen' }}
+          </ion-button>
+        </ion-item>
+      } @else {
+        <ion-item lines="full">
+          <ion-checkbox
+            [checked]="$any(node).completed"
+            (ionChange)="onGoalOrProjectCompletionChange($event)"
+          >
+            Completed
+          </ion-checkbox>
+        </ion-item>
+      }
+
+      <ion-list-header>
+        <ion-label>Contributes to</ion-label>
+      </ion-list-header>
+      @for (row of $contributesTo(); track row.edge.to) {
+        <ion-item lines="full">
+          <ion-label>{{ row.otherTitle }}</ion-label>
+          <ion-button slot="end" fill="clear" (click)="removeEdge(row.edge)"
+            >Remove</ion-button
+          >
+        </ion-item>
+      }
+      <ion-item lines="full">
+        <ion-select placeholder="Add target" [(ngModel)]="connectTargetId">
+          @for (other of $otherNodes(); track other.id) {
+            <ion-select-option [value]="other.id">{{
+              other.title
+            }}</ion-select-option>
+          }
+        </ion-select>
+        <ion-button
+          slot="end"
+          fill="clear"
+          [disabled]="!connectTargetId || $busy()"
+          (click)="connectEdge('contributes_to')"
+        >
+          Connect
+        </ion-button>
+      </ion-item>
+
+      <ion-list-header>
+        <ion-label>Blocks</ion-label>
+      </ion-list-header>
+      @for (row of $blocks(); track row.edge.to) {
+        <ion-item lines="full">
+          <ion-label>{{ row.otherTitle }}</ion-label>
+          <ion-button slot="end" fill="clear" (click)="removeEdge(row.edge)"
+            >Remove</ion-button
+          >
+        </ion-item>
+      }
+      <ion-item lines="full">
+        <ion-select placeholder="Add blocked item" [(ngModel)]="blockTargetId">
+          @for (other of $otherNodes(); track other.id) {
+            <ion-select-option [value]="other.id">{{
+              other.title
+            }}</ion-select-option>
+          }
+        </ion-select>
+        <ion-button
+          slot="end"
+          fill="clear"
+          [disabled]="!blockTargetId || $busy()"
+          (click)="connectEdge('blocks')"
+        >
+          Connect
+        </ion-button>
+      </ion-item>
+    </ion-list>
+
+    <ion-button
+      color="danger"
+      fill="outline"
+      [disabled]="$busy()"
+      (click)="deleteNode()"
+    >
+      Delete {{ nodeKindLabel(node).toLowerCase() }}
+    </ion-button>
+  } @else {
+    <p>Loading…</p>
+  }
+</ion-content>

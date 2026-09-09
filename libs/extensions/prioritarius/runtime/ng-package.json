@@ -4,7 +4,6 @@
   "lib": {
     "entryFile": "src/index.ts"
   },
-  "assets": [
-    "src/assets"
-  ]
+  "allowedNonPeerDependencies": ["@sneat/prioritarius-core"],
+  "assets": ["src/assets"]
 }
