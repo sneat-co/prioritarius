@@ -83,7 +83,23 @@
 // POST /v0/prioritarius/apply_template
 //
 //	Request  facade4prioritarius.ApplyTemplateRequest — {spaceID, templateId?}
-//	  templateId defaults to "starter" (the only built-in template today).
+//	  templateId is one of "personal" | "family" | "work" (the built-in
+//	  catalog, see facade4prioritarius/template.go); "starter" is a legacy
+//	  alias of "personal", kept working so nothing already shipped breaks.
+//	  templateId defaults to "personal" when empty.
 //	Response facade4prioritarius.ApplyTemplateResponse — {nodes: []NodeDbo, edges: []EdgeDbo}
-//	  Every node/edge the template created, for optimistic update.
+//	  Every node/edge the template created, for optimistic update. Created
+//	  nodes are ordinary content — nothing marks them as template-derived,
+//	  and every one is freely editable/deletable like any other node.
+//
+// POST /v0/prioritarius/list_templates
+//
+//	Request  none (empty body)
+//	Response facade4prioritarius.ListTemplatesResponse
+//	  {templates: [{id, title, goalTitles: []string}, ...]}
+//	  One entry per catalog template (in display order), each carrying the
+//	  titles of the goals apply_template would create for that id — the
+//	  compact preview a client renders under "or start with a template"
+//	  before the user commits to applying one. goalTitles is always exactly
+//	  what apply_template creates for that id, in the same order.
 package api4prioritarius

@@ -59,6 +59,7 @@ func TestRegisterHttpRoutes_MountsAllRoutes(t *testing.T) {
 		"POST /v0/prioritarius/delete_edge",
 		"POST /v0/prioritarius/set_goal_order",
 		"POST /v0/prioritarius/apply_template",
+		"POST /v0/prioritarius/list_templates",
 	}
 	for _, route := range want {
 		if !registered[route] {
@@ -137,6 +138,76 @@ func TestHttpCreateEdge_CycleReturnsConflictWithPath(t *testing.T) {
 		if payload.Path[i] != want[i] {
 			t.Errorf("path[%d] = %q, want %q", i, payload.Path[i], want[i])
 		}
+	}
+}
+
+func TestHttpApplyTemplate_UnknownIdIsBadRequest(t *testing.T) {
+	h := newTestHandler()
+	body, _ := json.Marshal(facade4prioritarius.ApplyTemplateRequest{SpaceID: "space1", TemplateID: "does-not-exist"})
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/apply_template", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	h.httpApplyTemplate(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHttpApplyTemplate_FamilyTemplateThroughMux(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterHttpRoutes(func(method, path string, handler http.HandlerFunc) { mux.Handle(path, handler) })
+
+	body, _ := json.Marshal(facade4prioritarius.ApplyTemplateRequest{SpaceID: "space1", TemplateID: "family"})
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/apply_template", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp facade4prioritarius.ApplyTemplateResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Nodes) == 0 {
+		t.Error("expected at least one node in the response")
+	}
+}
+
+func TestHttpListTemplates_ThroughMux(t *testing.T) {
+	h := newTestHandler()
+	mux := http.NewServeMux()
+	h.RegisterHttpRoutes(func(method, path string, handler http.HandlerFunc) { mux.Handle(path, handler) })
+
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/list_templates", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	var resp facade4prioritarius.ListTemplatesResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Templates) != 3 {
+		t.Fatalf("len(Templates) = %d, want 3", len(resp.Templates))
+	}
+	for _, tpl := range resp.Templates {
+		if tpl.ID == "" || tpl.Title == "" || len(tpl.GoalTitles) == 0 {
+			t.Errorf("incomplete preview: %+v", tpl)
+		}
+	}
+}
+
+func TestHttpListTemplates_Unauthorized(t *testing.T) {
+	h := newTestHandler()
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/list_templates", nil)
+	rec := httptest.NewRecorder()
+	h.httpListTemplates(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
 	}
 }
 
