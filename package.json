@@ -109,5 +109,10 @@
   },
   "nx": {
     "includedScripts": []
+  },
+  "pnpm": {
+    "overrides": {
+      "js-yaml": ">=4.3.2"
+    }
   }
 }
