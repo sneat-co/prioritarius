@@ -30,3 +30,29 @@ jobs:
     with:
       working-directory: "."
       targets: "lint test build"
+
+  landing:
+    name: Astro and app deploy build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup landing workspace
+        uses: sneat-co/cicd/actions/setup-pnpm-node@main
+        with:
+          working-directory: landings
+          node-version: "22"
+          pnpm-version: "11.20.0"
+
+      - name: Setup root app workspace
+        uses: sneat-co/cicd/actions/setup-pnpm-node@main
+        with:
+          working-directory: "."
+          node-version: "22"
+          pnpm-version: "11.20.0"
+
+      - name: Build landing and app
+        working-directory: landings
+        env:
+          PUBLIC_SITE_URL: https://prioritarius.com
+        run: pnpm run build
