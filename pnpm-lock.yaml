@@ -408,7 +408,7 @@ importers:
         specifier: 0.26.4
         version: 0.26.4(@angular/animations@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(@angular/router@22.1.3(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(@angular/platform-browser@22.1.3(@angular/animations@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(@angular/common@22.1.3(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(rxjs@7.8.2))(@ionic/angular@9.0.0(6ff9fc4b486d8c68e67889d2ebc5db9b))(@sneat/core-public@0.26.4(@angular/core@22.1.3(@angular/compiler@22.1.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@sneat/extension-contactus-ui':
-        specifier: 0.13.9
+        specifier: ^0.13.9
         version: 0.13.9(f17c5cebbdb1365ad9a11aecb0d4654b)
       '@sneat/prioritarius-core':
         specifier: workspace:*
