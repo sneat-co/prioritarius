@@ -1,13 +1,15 @@
 // Merge the Angular app build into the landing `dist/` to produce the single
-// distribution the Cloudflare Worker serves.
+// distribution Cloudflare static assets serve (no Worker script).
 //
-// The landing owns `dist/index.html` (the `/` home). The app is root-mounted, so
-// its own `index.html` would clobber the landing home — instead we store it as
-// `dist/index.app.html` (the SPA shell the Worker serves for app deep links).
+// The Angular app is root-mounted and owns `dist/index.html`: it is the SPA
+// shell that assets.not_found_handling "single-page-application" serves (200,
+// URL kept) for every path without a file, so no route list is needed. The
+// landing home Astro wrote as `dist/index.html` moves to `dist/landing.html`,
+// and public/_redirects rewrites exactly `/` to `/landing`.
 // Angular's hashed JS/CSS and `assets/` do not collide with Astro's `_astro/`.
 //
 // Run AFTER `astro build` (writes dist/) and the app build (writes browser/).
-import { cp, access } from 'node:fs/promises';
+import { access, cp, readFile, rename } from 'node:fs/promises';
 import { sep } from 'node:path';
 
 // This template is a single Nx workspace: the app builds to
@@ -24,16 +26,37 @@ try {
   );
 }
 
-// Copy the app build into dist, but never overwrite the landing's index.html.
+// Assemble exactly once per astro build: a second run would move the app shell
+// over the landing home.
+let home;
+try {
+  home = await readFile(`${DIST}/index.html`, 'utf8');
+} catch {
+  throw new Error(
+    `Landing home not found at ${DIST}/index.html — run astro build first.`,
+  );
+}
+if (home === (await readFile(`${BROWSER}/index.html`, 'utf8'))) {
+  throw new Error(
+    `${DIST}/index.html is already the app shell — rerun astro build first.`,
+  );
+}
+
+// The landing home leaves the root index.html to the app shell. `landing.html`
+// is served at `/landing` (html_handling), the `/` rewrite target in
+// public/_redirects; its canonical URL stays `/`.
+await rename(`${DIST}/index.html`, `${DIST}/landing.html`);
+
+// Copy the app build into dist without any index.html (a nested one could
+// shadow a landing page), then place the app's root index.html: the SPA shell.
 await cp(BROWSER, DIST, {
   recursive: true,
   force: true,
   filter: (src) => !src.endsWith(`${sep}index.html`),
 });
-
-// The app's index.html becomes the SPA shell served for application deep links.
-await cp(`${BROWSER}/index.html`, `${DIST}/index.app.html`, { force: true });
+await cp(`${BROWSER}/index.html`, `${DIST}/index.html`, { force: true });
 
 console.log(
-  'Assembled Angular app into landing dist (SPA shell: dist/index.app.html).',
+  'Assembled Angular app into landing dist (SPA shell: dist/index.html, ' +
+    'landing home: dist/landing.html).',
 );

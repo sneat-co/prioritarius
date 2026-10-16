@@ -6,19 +6,16 @@
  * lives in the package; this module declares THIS landing's locales and
  * re-exports the bound helpers, so every page and component reads unchanged.
  *
- * ⚠️ Adding a locale here is NOT enough to make it reachable. `worker.js` keeps
- * its own RESERVED_LOCALES list, and any locale missing from it falls through
- * the edge router to the root-mounted Angular SPA — so a brand-new `/xx/` would
- * answer 200 with the app shell rather than 404, which is why this failure
- * hides so well. The two lists must be kept in sync by hand: worker.js is
- * deliberately dependency-free and cannot import this file.
+ * Reachability: the Cloudflare deploy is assets-only (no Worker script). A built
+ * `/{locale}/` page is served as a file and any path without a file falls back
+ * to the root-mounted Angular SPA shell (200). So no router list needs updating,
+ * but a locale whose pages are missing answers 200 with the app shell, not 404.
  *
  * Adding a locale, end to end:
  *   1. add it to `langs` below
- *   2. add it to RESERVED_LOCALES in worker.js
- *   3. write src/i18n/copy/<code>.ts against the Copy interface
- *   4. register it in src/i18n/copy/index.ts
- *   5. add src/pages/<code>/index.astro and src/pages/<code>/privacy.astro
+ *   2. write src/i18n/copy/<code>.ts against the Copy interface
+ *   3. register it in src/i18n/copy/index.ts
+ *   4. add src/pages/<code>/index.astro and src/pages/<code>/privacy.astro
  * The type-checker will tell you exactly which strings you still owe — that is
  * the main reason Copy is an explicit contract rather than a loose record.
  *
