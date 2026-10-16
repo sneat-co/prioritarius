@@ -1,0 +1,37 @@
+# Routing for the landing + root-mounted app, served by Cloudflare Workers static
+# assets with NO Worker script (wrangler.jsonc has no `main`). Requests matched
+# here or by a static asset are free and never count against the Workers quota.
+#
+#   /                    -> landing home (dist/landing.html, rewrite below)
+#   path with a file     -> that file (landing pages, app chunks, robots.txt, ...)
+#   any other path       -> app SPA shell (dist/index.html), 200, URL kept:
+#                           assets.not_found_handling = "single-page-application"
+#
+# Rules are first-match and evaluated BEFORE assets, so never add a splat that
+# could shadow a landing file. `/` rewrites to `/landing`, not `/landing.html`
+# (the latter answers 307 under html_handling).
+#
+# Firebase Auth's /__/* never reaches this deployment: a zone route sends it to
+# the shared sneat-firebase-auth-proxy Worker (sneat-sites repo). Keep `/__`
+# paths out of this file. Host-level redirects (www -> apex) are zone Redirect
+# Rules, not this file.
+
+# --- Landing home -------------------------------------------------------------
+# The root index.html is the app shell (the SPA fallback); the landing owns /.
+/               /landing                              200
+/landing        /                                     301
+
+# --- Legacy redirects ---------------------------------------------------------
+# English is the default locale and owns the bare root.
+/en             /                                     301
+/en/            /                                     301
+# Legacy /pwa/* -> root-mounted route.
+/pwa            /                                     301
+/pwa/*          /:splat                               301
+# Unprefixed legal pages -> the default locale's copy.
+/privacy        /en/privacy/ 301
+/privacy/       /en/privacy/ 301
+/terms          /en/terms/ 301
+/terms/         /en/terms/ 301
+/vision         /en/vision/ 301
+/vision/        /en/vision/ 301

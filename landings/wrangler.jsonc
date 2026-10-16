@@ -1,38 +1,23 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // `template` is renamed to your extension id by ./customize.sh.
   "name": "prioritarius",
   "compatibility_date": "2026-06-23",
   "workers_dev": true,
-  // Edge router: reserved public paths -> landing; everything else -> the
-  // root-mounted Angular SPA (index.app.html). run_worker_first makes the Worker
-  // authoritative for the split (see worker.js and docs/HOSTING.md).
-  "main": "worker.js",
+  // Assets-only: NO Worker script. Every request is answered by Cloudflare
+  // static assets (free, never billed against the Workers request quota).
+  // A path with a file gets that file; any other path gets the app SPA shell
+  // dist/index.html (200, URL kept), so the app's routes need no list here.
+  // public/_redirects rewrites exactly `/` to the landing home
+  // (dist/landing.html) and holds the legacy 301s.
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS",
-    "run_worker_first": true,
-    "not_found_handling": "none"
+    "not_found_handling": "single-page-application"
   },
-  // APEX / CUSTOM DOMAIN — commented out by default so this repo deploys to
-  // `workers.dev` immediately (a working preview) with no dependency on a
-  // registered domain. To go live on your apex: uncomment the `routes` block
-  // below, set your real domain, and attach it once (needs Zone:DNS:Edit — see
-  // docs/HOSTING.md). Until then every push deploys a green preview.
-  //
-  // APEX-ONLY BY DEFAULT (recommended). The apex is the single canonical host.
-  // It is attached to this worker as a Cloudflare **Custom Domain** (Cloudflare
-  // manages the proxied DNS record + TLS cert).
-  //
-  // We deliberately do NOT add a `www.` custom domain here. If you want `www`
-  // to work, do NOT add it as a second custom domain (that serves duplicate
-  // content) — instead add a zone **Redirect Rule** (www -> apex, 301). See
-  // docs/HOSTING.md.
-  //
-  // NOTE: attaching/creating a custom domain requires a token with
-  // Zone:DNS:Edit — a plain OAuth/`workers`-only token cannot create them.
-  // Do it once in the Cloudflare dashboard (or with a DNS-scoped token), then
-  // CI keeps the worker in sync. See docs/HOSTING.md.
+  // Hosts are attached as Cloudflare Custom Domains / zone routes (unchanged).
+  // Attaching a custom domain needs a token with Zone:DNS:Edit (done once in
+  // the dashboard). Firebase Auth's /__/* is NOT served here: where a site needs
+  // it, a zone route sends it to the shared sneat-firebase-auth-proxy Worker
+  // (sneat-sites repo). www -> apex, where wanted, is a zone Redirect Rule.
   "routes": [
     { "pattern": "prioritarius.com", "custom_domain": true }
   ]

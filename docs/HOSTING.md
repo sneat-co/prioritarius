@@ -4,8 +4,8 @@ The `landings/` directory is a static **Astro** marketing site, deployed to
 **Cloudflare** (Workers static assets) at your product's apex domain. It is the
 public, crawlable front door. The signed-in Angular app is **mounted at the root
 of the same origin** (not a subdomain — so the landing can read the Firebase auth
-session and show the signed-in user), and a small Cloudflare **Worker** routes
-each request to either the landing or the app. See
+session and show the signed-in user), and **no Worker script** runs: Cloudflare static assets plus a
+`_redirects` file route each request to either the landing or the app. See
 [Routing model](#routing-model).
 
 This follows the Sneat **site-hosting-pattern** — the canonical spec lives in
@@ -31,7 +31,7 @@ npx wrangler dev        # preview the REAL routing (landing + app) locally
 merges it into `landings/dist` via `scripts/assemble-app.mjs`, so it needs the
 repo-root workspace deps installed (`pnpm install` at the repo root), not just
 `landings/`. Preview with `wrangler dev` rather than `astro preview` — only the
-Worker reproduces the landing/app split and the SPA-shell fallback.
+assets config reproduces the landing/app split and the SPA-shell fallback.
 
 ---
 
@@ -115,12 +115,12 @@ no `www`).
 
 **Do NOT** make `www` work by adding it as a *second custom domain* — that
 serves the same content on two hosts (duplicate content). And **do not** handle
-`www` in the routing Worker — a **zone Redirect Rule** runs at Cloudflare's edge
+`www` in routing code — a **zone Redirect Rule** runs at Cloudflare's edge
 *before* the Worker, costs nothing, and keeps `www` out of your routing code.
 
-(This scaffold does run a Worker with `run_worker_first` — but for an essential
-reason: the landing/app [routing split](#routing-model), not a `www` redirect. A
-Redirect Rule short-circuits `www` before that Worker ever runs.)
+(This scaffold runs no Worker script: routing is static assets + `_redirects`,
+and `_redirects` cannot match on host, so a `www` Redirect Rule is the way to
+redirect hosts.)
 
 ### If you do want `www` → use a zone Redirect Rule (301 to apex)
 
@@ -182,7 +182,7 @@ dashboard (or with a purpose-scoped API token).
 
 ## Routing model
 
-One origin, one Worker, two builds. Per
+One origin, no Worker script, two builds. Per
 [backstage ADR 0001](https://github.com/sneat-co/backstage/blob/main/docs/decisions/0001-root-mounted-app-routing.md)
 and
 [sneat-libs `routing-and-deployment.md`](https://github.com/sneat-co/sneat-libs/blob/main/docs/extension-standards/routing-and-deployment.md):
@@ -194,37 +194,43 @@ and
   |---|---|
   | `/`, `/{locale}/*`, `/static/*`, `/.well-known/*`, `/robots.txt`, `/sitemap*.xml`, `/favicon.*`, `/manifest.webmanifest` | `/space/...`, `/my`, `/my/settings`, `/event/:id`, `/u/:handle`, `/login`, … |
 
-- **Locales are an explicit allow-list** (`RESERVED_LOCALES` in `worker.js`), not
-  "any two-letter segment" — otherwise `/my` (the personal dashboard) collides
-  with a locale.
+- **Locales are folders, not a router list**: a `/{locale}/*` page is just a built
+  file in `landings/dist`. Any path without a file (including a typo under
+  `/en/`) falls back to the app shell, so keep the landing's locale folders
+  explicit and never treat "any two-letter segment" as a locale — `/my` (the
+  personal dashboard) is also two letters.
 - **Content pages live under `/{locale}/*`** (`landings/src/pages/en/*`); the home
   stays at `/`. Don't create flat `/about`, `/pricing`, `/privacy` — use
   `/en/about`, `/en/pricing`, `/en/privacy`.
 - `/my` is an application **section**, never the global app prefix (many app pages
   are shared/public: `/event/:id`, `/u/:handle`). Do **not** mount the app under
-  `/pwa/` or `/app/` — `worker.js` keeps a `/pwa/*` → `/*` 301 as legacy compat
-  only.
+  `/pwa/` or `/app/` — `public/_redirects` keeps a `/pwa/*` → `/*` 301 as
+  legacy compat only.
 - **The service worker stays disabled**; when enabled it must not intercept the
   reserved public paths.
 
 ### How it's wired
 
-- `landings/worker.js` — the edge split (`isReservedPublicPath`): reserved →
-  landing asset (or its own 404); else → the app SPA shell (`index.app.html`),
-  returned as 200 at the requested URL.
-- `landings/wrangler.jsonc` — `main: worker.js` + `assets.binding: ASSETS` +
-  `run_worker_first: true` so the Worker is authoritative.
+- `landings/wrangler.jsonc` — assets-only: no `main`, no `run_worker_first`;
+  `assets.not_found_handling: "single-page-application"`, so any path without a
+  file gets the app shell (`dist/index.html`, 200, URL kept). Requests answered by
+  static assets are free and never counted against the Workers request quota.
+- `landings/public/_redirects` — `/` rewrites (200) to `/landing` (the landing
+  home, `dist/landing.html`), `/landing` 301s back to `/`, plus legacy 301s.
+  Never add a splat rule that could shadow a landing file, and keep `/__` paths
+  out (Firebase Auth's `/__/*` is served by zone routes on the shared
+  `sneat-firebase-auth-proxy` Worker).
 - `landings/scripts/assemble-app.mjs` — `pnpm build` builds the Astro landing,
-  builds the app (`--base-href=/`), and merges the app into `landings/dist`,
-  renaming the app `index.html` → `index.app.html` so it doesn't clobber the
-  landing home. Angular's hashed JS/CSS + `assets/` don't collide with Astro's
+  builds the app (`--base-href=/`), moves the landing home to `dist/landing.html`
+  and merges the app into `landings/dist` with the app `index.html` as the SPA
+  shell. Angular's hashed JS/CSS + `assets/` don't collide with Astro's
   `_astro/`.
 
 ## Topology recap
 
 - **Landing (this `landings/`)** = Astro static build.
 - **App** = the Angular SPA in `apps/<id>-app`, built with `--base-href=/`.
-- **One origin, two builds, one distribution**, served by **one** Cloudflare
-  Worker (`landings/worker.js`) that splits landing vs app per the
-  [Routing model](#routing-model). See the
+- **One origin, two builds, one distribution**, served by **one** assets-only
+  Cloudflare Worker (no script; `_redirects` + SPA fallback) that splits landing
+  vs app per the [Routing model](#routing-model). See the
   [site-hosting-pattern spec](https://github.com/sneat-co/backstage/blob/main/spec/features/site-hosting-pattern/README.md).

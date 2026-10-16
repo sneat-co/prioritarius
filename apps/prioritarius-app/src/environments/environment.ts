@@ -17,8 +17,8 @@ export const prioritariusAppEnvironmentConfig: IEnvironmentConfig =
       projectId: 'sneat-eur3-1',
       appId: '1:588648831063:web:303af7e0c5f8a7b10d6b12',
       apiKey: 'AIzaSyCeQu1WC182yD0VHrRm4nHUxVf27fY-MLQ',
-      // Pinned to the product's own domain — landings/worker.js reverse-proxies
-      // the /__/* subtree to sneat-eur3-1.firebaseapp.com, mirroring schoolus and
+      // Pinned to the product's own domain — a zone route on the sneat-firebase-auth-proxy
+      // Worker reverse-proxies the /__/* subtree to sneat-eur3-1.firebaseapp.com, mirroring schoolus and
       // sneat-club. Same-origin auth avoids the third-party-storage breakage a
       // cross-origin authDomain (the @sneat/app default, auth.sneat.co) triggers:
       // signInWithRedirect returns and getRedirectResult() yields nothing, so the

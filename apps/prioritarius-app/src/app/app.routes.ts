@@ -4,8 +4,8 @@ import { redirectToLoginIfNotSignedIn } from '@sneat/auth-core';
 
 export const appRoutes: Route[] = [
   {
-    // `/` belongs to the Astro landing: landings/worker.js serves index.html
-    // there on a hard load, so an Angular home mounted at '' exists only via
+    // `/` belongs to the Astro landing: landings/public/_redirects rewrites `/` to the
+    // landing home on a hard load, so an Angular home mounted at '' exists only via
     // in-app navigation and vanishes on reload. The app's front door is /home;
     // '' only forwards in-SPA navigations (e.g. the login page's '/' fallback).
     path: '',

@@ -2,7 +2,7 @@ import { appRoutes } from './app.routes';
 
 describe('appRoutes', () => {
   it('forwards the root path to /home instead of rendering there', () => {
-    // `/` is the landing page's URL (served by landings/worker.js on a hard
+    // `/` is the landing page's URL (served by landings/public/_redirects on a hard
     // load), so the app must not own it — and must not redirect to login,
     // which bounced signed-in users straight back to the login page.
     const root = appRoutes.find((r) => r.path === '');
