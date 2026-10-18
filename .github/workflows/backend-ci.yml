@@ -33,4 +33,5 @@ jobs:
       working_directory: backend
       GOPRIVATE: github.com/sneat-co
       goprivate_git_host: github.com/sneat-co
+      min_test_coverage_percent: 100
       tag_prefix: backend/v

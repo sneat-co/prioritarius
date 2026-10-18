@@ -59,15 +59,10 @@ func sameStringSet(a, b []string) bool {
 		counts[v]++
 	}
 	for _, v := range b {
+		if counts[v] == 0 {
+			return false
+		}
 		counts[v]--
-		if counts[v] < 0 {
-			return false
-		}
-	}
-	for _, c := range counts {
-		if c != 0 {
-			return false
-		}
 	}
 	return true
 }

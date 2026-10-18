@@ -142,3 +142,63 @@ func TestFacade_DeleteEdge_AbsentIsNoopNotError(t *testing.T) {
 		t.Error("Removed = true, want false")
 	}
 }
+
+func TestFacade_CreateEdge_ValidationErrors(t *testing.T) {
+	f, _ := newTestFacade([]string{"n1"})
+	ctx := context.Background()
+
+	// Empty From
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty from: got %v, want ErrValidation", err)
+	}
+
+	// Empty To
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty to: got %v, want ErrValidation", err)
+	}
+
+	// Invalid Type
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: "invalid"}); !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid type: got %v, want ErrValidation", err)
+	}
+}
+
+func TestFacade_CreateEdge_MembershipErrors(t *testing.T) {
+	f, _ := newTestFacade([]string{"n1"})
+	ctx := context.Background()
+
+	// Unauthorized (empty userID)
+	if _, err := f.CreateEdge(ctx, "", CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+	}
+
+	// Forbidden (other user)
+	if _, err := f.CreateEdge(ctx, "stranger", CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrForbidden) {
+		t.Errorf("forbidden: got %v, want ErrForbidden", err)
+	}
+}
+
+func TestFacade_CreateEdge_FromNotFound(t *testing.T) {
+	f, _ := newTestFacade([]string{"b"})
+	createTestNodes(t, f, "b")
+	ctx := context.Background()
+
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "ghost", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrNotFound) {
+		t.Errorf("from not found: got %v, want ErrNotFound", err)
+	}
+}
+
+func TestFacade_DeleteEdge_MembershipErrors(t *testing.T) {
+	f, _ := newTestFacade([]string{"n1"})
+	ctx := context.Background()
+
+	// Unauthorized
+	if _, err := f.DeleteEdge(ctx, "", DeleteEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+	}
+
+	// Forbidden
+	if _, err := f.DeleteEdge(ctx, "stranger", DeleteEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); !errors.Is(err, ErrForbidden) {
+		t.Errorf("forbidden: got %v, want ErrForbidden", err)
+	}
+}
