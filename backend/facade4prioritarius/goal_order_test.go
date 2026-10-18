@@ -51,4 +51,24 @@ func TestFacade_SetGoalOrder(t *testing.T) {
 			t.Errorf("error = %v, want ErrValidation", err)
 		}
 	})
+
+	t.Run("rejects a set of same length with different elements", func(t *testing.T) {
+		f := setup(t)
+		_, err := f.SetGoalOrder(context.Background(), testUserID, SetGoalOrderRequest{SpaceID: testSpaceID, GoalIDs: []string{"g1", "g2", "ghost"}})
+		if !errors.Is(err, ErrValidation) {
+			t.Errorf("error = %v, want ErrValidation", err)
+		}
+	})
+
+	t.Run("membership errors", func(t *testing.T) {
+		f := setup(t)
+		// Unauthorized
+		if _, err := f.SetGoalOrder(context.Background(), "", SetGoalOrderRequest{SpaceID: testSpaceID, GoalIDs: []string{"g1", "g2", "g3"}}); !errors.Is(err, ErrUnauthorized) {
+			t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+		}
+		// Forbidden
+		if _, err := f.SetGoalOrder(context.Background(), "stranger", SetGoalOrderRequest{SpaceID: testSpaceID, GoalIDs: []string{"g1", "g2", "g3"}}); !errors.Is(err, ErrForbidden) {
+			t.Errorf("forbidden: got %v, want ErrForbidden", err)
+		}
+	})
 }

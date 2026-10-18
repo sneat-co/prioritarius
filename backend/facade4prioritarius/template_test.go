@@ -268,3 +268,29 @@ func TestFacade_ListTemplates_MatchesApplyTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestFacade_ApplyTemplate_IDGeneratorError(t *testing.T) {
+	// Exhausted ID generator with fewer IDs than template nodes
+	f, _ := newTestFacade([]string{"only-one-id"})
+	_, err := f.ApplyTemplate(context.Background(), testUserID, ApplyTemplateRequest{SpaceID: testSpaceID, TemplateID: TemplatePersonal})
+	if err == nil {
+		t.Fatal("expected error from exhausted id generator, got nil")
+	}
+}
+
+func TestFacade_ApplyTemplate_MembershipErrors(t *testing.T) {
+	def := findCatalogDef(t, TemplatePersonal)
+	ctx := context.Background()
+
+	// Unauthorized
+	f1, _ := newTestFacade(idsFor(def))
+	if _, err := f1.ApplyTemplate(ctx, "", ApplyTemplateRequest{SpaceID: testSpaceID, TemplateID: TemplatePersonal}); !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+	}
+
+	// Forbidden
+	f2, _ := newTestFacade(idsFor(def))
+	if _, err := f2.ApplyTemplate(ctx, "stranger", ApplyTemplateRequest{SpaceID: testSpaceID, TemplateID: TemplatePersonal}); !errors.Is(err, ErrForbidden) {
+		t.Errorf("forbidden: got %v, want ErrForbidden", err)
+	}
+}

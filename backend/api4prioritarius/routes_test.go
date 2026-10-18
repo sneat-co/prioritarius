@@ -211,6 +211,18 @@ func TestHttpListTemplates_Unauthorized(t *testing.T) {
 	}
 }
 
+func TestHttpListTemplates_EmptyUserID(t *testing.T) {
+	facade := facade4prioritarius.NewFacade(sneatcoretesting.NewMemoryDB(), fakeIDGenerator{}, allowAllMembership{})
+	h := NewHandler(facade, fakeIdentity{userID: ""})
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/list_templates", nil)
+	req.Header.Set("Authorization", "Bearer valid-token-empty-user")
+	rec := httptest.NewRecorder()
+	h.httpListTemplates(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
 type sequentialIDs struct {
 	ids []string
 	i   int
@@ -223,4 +235,235 @@ func (s *sequentialIDs) NewID(context.Context) (string, error) {
 	id := s.ids[s.i]
 	s.i++
 	return id, nil
+}
+
+func TestHandleFacadeError(t *testing.T) {
+	rec := httptest.NewRecorder()
+	if handleFacadeError(rec, nil) {
+		t.Error("expected false for nil error, got true")
+	}
+
+	tests := []struct {
+		err        error
+		wantStatus int
+		wantCode   string
+	}{
+		{facade4prioritarius.ErrUnauthorized, http.StatusUnauthorized, "unauthorized"},
+		{facade4prioritarius.ErrForbidden, http.StatusForbidden, "forbidden"},
+		{facade4prioritarius.ErrNotFound, http.StatusNotFound, "not_found"},
+		{facade4prioritarius.ErrValidation, http.StatusBadRequest, "bad_request"},
+		{errors.New("other internal error"), http.StatusInternalServerError, "internal"},
+	}
+
+	for _, tt := range tests {
+		rec := httptest.NewRecorder()
+		if !handleFacadeError(rec, tt.err) {
+			t.Errorf("handleFacadeError(%v) returned false, want true", tt.err)
+		}
+		if rec.Code != tt.wantStatus {
+			t.Errorf("status = %d, want %d", rec.Code, tt.wantStatus)
+		}
+	}
+}
+
+func TestHandlers_InvalidJSON(t *testing.T) {
+	h := newTestHandler()
+	badJSON := []byte("{malformed")
+
+	handlers := []struct {
+		name string
+		call func(w http.ResponseWriter, r *http.Request)
+	}{
+		{"httpCreateNode", h.httpCreateNode},
+		{"httpUpdateNode", h.httpUpdateNode},
+		{"httpDeleteNode", h.httpDeleteNode},
+		{"httpCreateEdge", h.httpCreateEdge},
+		{"httpDeleteEdge", h.httpDeleteEdge},
+		{"httpSetGoalOrder", h.httpSetGoalOrder},
+		{"httpApplyTemplate", h.httpApplyTemplate},
+	}
+
+	for _, tc := range handlers {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(badJSON))
+			req.Header.Set("Authorization", "Bearer test-token")
+			rec := httptest.NewRecorder()
+			tc.call(rec, req)
+			if rec.Code != http.StatusBadRequest {
+				t.Errorf("%s status = %d, want 400", tc.name, rec.Code)
+			}
+		})
+	}
+}
+
+func TestHandlers_Unauthorized(t *testing.T) {
+	h := newTestHandler()
+	handlers := []struct {
+		name string
+		call func(w http.ResponseWriter, r *http.Request)
+	}{
+		{"httpUpdateNode", h.httpUpdateNode},
+		{"httpDeleteNode", h.httpDeleteNode},
+		{"httpCreateEdge", h.httpCreateEdge},
+		{"httpDeleteEdge", h.httpDeleteEdge},
+		{"httpSetGoalOrder", h.httpSetGoalOrder},
+		{"httpApplyTemplate", h.httpApplyTemplate},
+	}
+
+	for _, tc := range handlers {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("{}")))
+			rec := httptest.NewRecorder()
+			tc.call(rec, req)
+			if rec.Code != http.StatusUnauthorized {
+				t.Errorf("%s status = %d, want 401", tc.name, rec.Code)
+			}
+		})
+	}
+}
+
+func TestHandlers_EndToEnd(t *testing.T) {
+	facade := facade4prioritarius.NewFacade(sneatcoretesting.NewMemoryDB(), &sequentialIDs{ids: []string{"n1", "n2", "g1"}}, allowAllMembership{})
+	h := NewHandler(facade, fakeIdentity{userID: "user1"})
+
+	// Create n1
+	body, _ := json.Marshal(facade4prioritarius.CreateNodeRequest{SpaceID: "space1", Kind: "work_item", Title: "First"})
+	req := httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec := httptest.NewRecorder()
+	h.httpCreateNode(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create_node status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// Create n2
+	body, _ = json.Marshal(facade4prioritarius.CreateNodeRequest{SpaceID: "space1", Kind: "work_item", Title: "Second"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpCreateNode(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create_node status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// Create goal g1 (committed)
+	body, _ = json.Marshal(facade4prioritarius.CreateNodeRequest{SpaceID: "space1", Kind: "goal", Title: "Goal 1", Commitment: "committed"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpCreateNode(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create_node status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// CreateNode error: empty title -> 400
+	body, _ = json.Marshal(facade4prioritarius.CreateNodeRequest{SpaceID: "space1", Kind: "work_item", Title: ""})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpCreateNode(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("create_node empty title status = %d, want 400", rec.Code)
+	}
+
+	// UpdateNode: update title of n1 -> 200
+	newTitle := "First Updated"
+	body, _ = json.Marshal(facade4prioritarius.UpdateNodeRequest{SpaceID: "space1", ID: "n1", Title: &newTitle})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/update_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpUpdateNode(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update_node status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// UpdateNode error: unknown node -> 404
+	body, _ = json.Marshal(facade4prioritarius.UpdateNodeRequest{SpaceID: "space1", ID: "missing", Title: &newTitle})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/update_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpUpdateNode(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("update_node unknown status = %d, want 404", rec.Code)
+	}
+
+	// CreateEdge: n1 -> n2 -> 201
+	body, _ = json.Marshal(facade4prioritarius.CreateEdgeRequest{SpaceID: "space1", From: "n1", To: "n2", Type: "blocks"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_edge", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpCreateEdge(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create_edge status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// CreateEdge error: invalid type -> 400
+	body, _ = json.Marshal(facade4prioritarius.CreateEdgeRequest{SpaceID: "space1", From: "n1", To: "n2", Type: "invalid"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/create_edge", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpCreateEdge(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("create_edge invalid type status = %d, want 400", rec.Code)
+	}
+
+	// DeleteEdge: n1 -> n2 -> 200
+	body, _ = json.Marshal(facade4prioritarius.DeleteEdgeRequest{SpaceID: "space1", From: "n1", To: "n2", Type: "blocks"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/delete_edge", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpDeleteEdge(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete_edge status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// DeleteEdge error: empty spaceID -> 400
+	body, _ = json.Marshal(facade4prioritarius.DeleteEdgeRequest{SpaceID: "", From: "n1", To: "n2", Type: "blocks"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/delete_edge", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpDeleteEdge(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("delete_edge empty spaceID status = %d, want 400", rec.Code)
+	}
+
+	// SetGoalOrder: g1 -> 200
+	body, _ = json.Marshal(facade4prioritarius.SetGoalOrderRequest{SpaceID: "space1", GoalIDs: []string{"g1"}})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/set_goal_order", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpSetGoalOrder(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("set_goal_order status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// SetGoalOrder error: wrong goalIDs -> 400
+	body, _ = json.Marshal(facade4prioritarius.SetGoalOrderRequest{SpaceID: "space1", GoalIDs: []string{"nonexistent"}})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/set_goal_order", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpSetGoalOrder(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("set_goal_order wrong goalIDs status = %d, want 400", rec.Code)
+	}
+
+	// DeleteNode: n2 -> 200
+	body, _ = json.Marshal(facade4prioritarius.DeleteNodeRequest{SpaceID: "space1", ID: "n2"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/delete_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpDeleteNode(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("delete_node status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	// DeleteNode error: unknown node -> 404
+	body, _ = json.Marshal(facade4prioritarius.DeleteNodeRequest{SpaceID: "space1", ID: "missing"})
+	req = httptest.NewRequest(http.MethodPost, "/v0/prioritarius/delete_node", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer token")
+	rec = httptest.NewRecorder()
+	h.httpDeleteNode(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("delete_node unknown status = %d, want 404", rec.Code)
+	}
 }

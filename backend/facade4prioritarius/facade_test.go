@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dal-go/dalgo/dal"
+	"github.com/dal-go/record"
 	"github.com/sneat-co/prioritarius/backend/models4prioritarius"
 	"github.com/sneat-co/sneat-go-core/sneatcoretesting"
 )
@@ -376,5 +377,362 @@ func TestFacade_CreateNode_RejectsUnauthenticated(t *testing.T) {
 	_, err := f.CreateNode(context.Background(), "", CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"})
 	if !errors.Is(err, ErrUnauthorized) {
 		t.Errorf("error = %v, want ErrUnauthorized", err)
+	}
+}
+
+type mockTx struct {
+	dal.ReadwriteTransaction
+	getErr   error
+	setErr   error
+	nilNodes bool
+}
+
+func (m mockTx) Get(ctx context.Context, rec record.Record) error {
+	if m.getErr != nil {
+		return m.getErr
+	}
+	if m.nilNodes {
+		dbo := rec.Data().(*models4prioritarius.WorkspaceDbo)
+		dbo.Nodes = nil
+		return nil
+	}
+	return m.ReadwriteTransaction.Get(ctx, rec)
+}
+
+func (m mockTx) Set(ctx context.Context, rec record.Record) error {
+	if m.setErr != nil {
+		return m.setErr
+	}
+	return m.ReadwriteTransaction.Set(ctx, rec)
+}
+
+type dbWrapper struct {
+	dal.DB
+	mockTx mockTx
+}
+
+func (w dbWrapper) RunReadwriteTransaction(ctx context.Context, f func(ctx context.Context, tx dal.ReadwriteTransaction) error, options ...dal.TransactionOption) error {
+	return w.DB.RunReadwriteTransaction(ctx, func(ctx context.Context, realTx dal.ReadwriteTransaction) error {
+		tx := w.mockTx
+		tx.ReadwriteTransaction = realTx
+		return f(ctx, tx)
+	}, options...)
+}
+
+type errorMembership struct{}
+
+func (errorMembership) IsSpaceMember(context.Context, dal.ReadSession, string, string) (bool, error) {
+	return false, errors.New("simulated membership error")
+}
+
+func TestFacade_RequireMember_Errors(t *testing.T) {
+	ctx := context.Background()
+
+	// Empty spaceID
+	f, _ := newTestFacade([]string{"n1"})
+	if _, err := f.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: "", Kind: models4prioritarius.NodeKindGoal, Title: "x"}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty spaceID: got %v, want ErrValidation", err)
+	}
+
+	// Nil membership resolver
+	fNil := NewFacade(sneatcoretesting.NewMemoryDB(), &fakeIDGenerator{ids: []string{"n1"}}, nil)
+	if _, err := fNil.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"}); err == nil {
+		t.Error("nil membership resolver: expected error, got nil")
+	}
+
+	// Membership resolver returns error
+	fErr := NewFacade(sneatcoretesting.NewMemoryDB(), &fakeIDGenerator{ids: []string{"n1"}}, errorMembership{})
+	if _, err := fErr.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"}); err == nil {
+		t.Error("membership resolver error: expected error, got nil")
+	}
+}
+
+func TestFacade_CreateNode_AdditionalBranches(t *testing.T) {
+	ctx := context.Background()
+
+	// Invalid estimate (negative)
+	f, _ := newTestFacade([]string{"n1"})
+	_, err := f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:     testSpaceID,
+		Kind:        models4prioritarius.NodeKindGoal,
+		Title:       "Test",
+		OwnEstimate: &models4prioritarius.Estimate{Value: -5, Unit: models4prioritarius.EstimateUnitHours},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("negative estimate: got %v, want ErrValidation", err)
+	}
+
+	// Valid estimate
+	f, _ = newTestFacade([]string{"n1"})
+	resp, err := f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:     testSpaceID,
+		Kind:        models4prioritarius.NodeKindGoal,
+		Title:       "Test",
+		OwnEstimate: &models4prioritarius.Estimate{Value: 5, Unit: models4prioritarius.EstimateUnitHours},
+	})
+	if err != nil || resp.Node.OwnEstimate == nil || resp.Node.OwnEstimate.Value != 5 {
+		t.Fatalf("valid estimate error: %v", err)
+	}
+
+	// Invalid deadline (empty date)
+	f, _ = newTestFacade([]string{"n1"})
+	_, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:  testSpaceID,
+		Kind:     models4prioritarius.NodeKindGoal,
+		Title:    "Test",
+		Deadline: &models4prioritarius.Deadline{Date: ""},
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("empty deadline date: got %v, want ErrValidation", err)
+	}
+
+	// Valid deadline
+	f, _ = newTestFacade([]string{"n1"})
+	resp, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:  testSpaceID,
+		Kind:     models4prioritarius.NodeKindGoal,
+		Title:    "Test",
+		Deadline: &models4prioritarius.Deadline{Date: "2026-10-18"},
+	})
+	if err != nil || resp.Node.Deadline == nil || resp.Node.Deadline.Date != "2026-10-18" {
+		t.Fatalf("valid deadline error: %v", err)
+	}
+
+	// Invalid commitment on goal
+	f, _ = newTestFacade([]string{"n1"})
+	_, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:    testSpaceID,
+		Kind:       models4prioritarius.NodeKindGoal,
+		Title:      "Test",
+		Commitment: "invalid_commitment",
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid commitment: got %v, want ErrValidation", err)
+	}
+
+	// Invalid status on work item
+	f, _ = newTestFacade([]string{"n1"})
+	_, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID: testSpaceID,
+		Kind:    models4prioritarius.NodeKindWorkItem,
+		Title:   "Test",
+		Status:  "invalid_status",
+	})
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid status: got %v, want ErrValidation", err)
+	}
+
+	// Work item created with status done
+	f, _ = newTestFacade([]string{"n1"})
+	resp, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID: testSpaceID,
+		Kind:    models4prioritarius.NodeKindWorkItem,
+		Title:   "Test",
+		Status:  models4prioritarius.WorkItemStatusDone,
+	})
+	if err != nil || resp.Node.DoneAt == nil {
+		t.Fatalf("work item done: err=%v, DoneAt=%v", err, resp.Node.DoneAt)
+	}
+
+	// Exhausted ID generator error
+	f, _ = newTestFacade(nil) // no ids available
+	_, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID: testSpaceID,
+		Kind:    models4prioritarius.NodeKindGoal,
+		Title:   "Test",
+	})
+	if err == nil {
+		t.Fatal("expected ID generator error, got nil")
+	}
+}
+
+func TestFacade_UpdateNode_AdditionalBranches(t *testing.T) {
+	ctx := context.Background()
+
+	// Empty ID
+	f, _ := newTestFacade([]string{"n1"})
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: ""}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty ID: got %v, want ErrValidation", err)
+	}
+
+	// Empty title pointer
+	emptyTitle := ""
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", Title: &emptyTitle}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty Title: got %v, want ErrValidation", err)
+	}
+
+	// Invalid estimate
+	invalidEst := models4prioritarius.Estimate{Value: -1, Unit: models4prioritarius.EstimateUnitDays}
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", OwnEstimate: &invalidEst}); !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid estimate: got %v, want ErrValidation", err)
+	}
+
+	// Invalid deadline
+	invalidDeadline := models4prioritarius.Deadline{Date: ""}
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", Deadline: &invalidDeadline}); !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid deadline: got %v, want ErrValidation", err)
+	}
+
+	// Membership errors
+	if _, err := f.UpdateNode(ctx, "", UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1"}); !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+	}
+	if _, err := f.UpdateNode(ctx, "stranger", UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1"}); !errors.Is(err, ErrForbidden) {
+		t.Errorf("forbidden: got %v, want ErrForbidden", err)
+	}
+
+	// Setup node for field clears and updates
+	f, _ = newTestFacade([]string{"n1"})
+	_, err := f.CreateNode(ctx, testUserID, CreateNodeRequest{
+		SpaceID:     testSpaceID,
+		Kind:        models4prioritarius.NodeKindWorkItem,
+		Title:       "Test",
+		Description: "Initial desc",
+		OwnEstimate: &models4prioritarius.Estimate{Value: 2, Unit: models4prioritarius.EstimateUnitHours},
+		Deadline:    &models4prioritarius.Deadline{Date: "2026-10-18"},
+	})
+	if err != nil {
+		t.Fatalf("setup node: %v", err)
+	}
+
+	// ClearDescription
+	resp, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", ClearDescription: true})
+	if err != nil || resp.Node.Description != "" {
+		t.Errorf("ClearDescription: err=%v, desc=%q", err, resp.Node.Description)
+	}
+
+	// Update OwnEstimate and then ClearOwnEstimate
+	newEst := models4prioritarius.Estimate{Value: 4, Unit: models4prioritarius.EstimateUnitDays}
+	resp, err = f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", OwnEstimate: &newEst})
+	if err != nil || resp.Node.OwnEstimate.Value != 4 {
+		t.Errorf("update OwnEstimate: err=%v", err)
+	}
+	resp, err = f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", ClearOwnEstimate: true})
+	if err != nil || resp.Node.OwnEstimate != nil {
+		t.Errorf("ClearOwnEstimate: err=%v, estimate=%v", err, resp.Node.OwnEstimate)
+	}
+
+	// Update Deadline and then ClearDeadline
+	newDl := models4prioritarius.Deadline{Date: "2026-11-01"}
+	resp, err = f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", Deadline: &newDl})
+	if err != nil || resp.Node.Deadline.Date != "2026-11-01" {
+		t.Errorf("update Deadline: err=%v", err)
+	}
+	resp, err = f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", ClearDeadline: true})
+	if err != nil || resp.Node.Deadline != nil {
+		t.Errorf("ClearDeadline: err=%v, deadline=%v", err, resp.Node.Deadline)
+	}
+
+	// Commitment on work_item
+	commit := models4prioritarius.CommitmentCommitted
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", Commitment: &commit}); !errors.Is(err, ErrValidation) {
+		t.Errorf("commitment on work_item: got %v, want ErrValidation", err)
+	}
+
+	// Invalid status
+	invStatus := models4prioritarius.WorkItemStatus("invalid")
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1", Status: &invStatus}); !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid status: got %v, want ErrValidation", err)
+	}
+
+	// Setup goal for invalid commitment
+	f, _ = newTestFacade([]string{"g1"})
+	_, err = f.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "Goal"})
+	if err != nil {
+		t.Fatalf("setup goal: %v", err)
+	}
+	invCommit := models4prioritarius.CommitmentState("invalid")
+	if _, err := f.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "g1", Commitment: &invCommit}); !errors.Is(err, ErrValidation) {
+		t.Errorf("invalid commitment: got %v, want ErrValidation", err)
+	}
+}
+
+func TestFacade_DeleteNode_AdditionalBranches(t *testing.T) {
+	ctx := context.Background()
+	f, _ := newTestFacade([]string{"a", "b", "c", "d"})
+	createTestNodes(t, f, "a", "b", "c", "d")
+
+	// Empty ID
+	if _, err := f.DeleteNode(ctx, testUserID, DeleteNodeRequest{SpaceID: testSpaceID, ID: ""}); !errors.Is(err, ErrValidation) {
+		t.Errorf("empty ID: got %v, want ErrValidation", err)
+	}
+
+	// Membership errors
+	if _, err := f.DeleteNode(ctx, "", DeleteNodeRequest{SpaceID: testSpaceID, ID: "a"}); !errors.Is(err, ErrUnauthorized) {
+		t.Errorf("unauthorized: got %v, want ErrUnauthorized", err)
+	}
+	if _, err := f.DeleteNode(ctx, "stranger", DeleteNodeRequest{SpaceID: testSpaceID, ID: "a"}); !errors.Is(err, ErrForbidden) {
+		t.Errorf("forbidden: got %v, want ErrForbidden", err)
+	}
+
+	// Create edge c -> d (does not touch a or b)
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "c", To: "d", Type: models4prioritarius.EdgeTypeBlocks}); err != nil {
+		t.Fatalf("CreateEdge c->d: %v", err)
+	}
+	// Create edge a -> b
+	if _, err := f.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); err != nil {
+		t.Fatalf("CreateEdge a->b: %v", err)
+	}
+
+	// Deleting a removes a->b but preserves c->d (hits kept = append(kept, e))
+	resp, err := f.DeleteNode(ctx, testUserID, DeleteNodeRequest{SpaceID: testSpaceID, ID: "a"})
+	if err != nil {
+		t.Fatalf("DeleteNode a: %v", err)
+	}
+	if resp.RemovedEdges != 1 {
+		t.Errorf("RemovedEdges = %d, want 1", resp.RemovedEdges)
+	}
+}
+
+func TestFacade_DatabaseErrorsAndNilNodes(t *testing.T) {
+	ctx := context.Background()
+	membership := newFakeMembership().allow(testSpaceID, testUserID)
+
+	// Simulated tx.Get error
+	dbGetErr := dbWrapper{
+		DB:     sneatcoretesting.NewMemoryDB(),
+		mockTx: mockTx{getErr: errors.New("simulated tx.Get failure")},
+	}
+	fGetErr := NewFacade(dbGetErr, &fakeIDGenerator{ids: []string{"n1", "n2", "n3", "n4", "n5", "n6", "n7", "n8", "n9", "n10"}}, membership)
+	if _, err := fGetErr.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"}); err == nil {
+		t.Error("expected error from simulated tx.Get in CreateNode, got nil")
+	}
+	if _, err := fGetErr.CreateEdge(ctx, testUserID, CreateEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); err == nil {
+		t.Error("expected error from simulated tx.Get in CreateEdge, got nil")
+	}
+	if _, err := fGetErr.DeleteEdge(ctx, testUserID, DeleteEdgeRequest{SpaceID: testSpaceID, From: "a", To: "b", Type: models4prioritarius.EdgeTypeBlocks}); err == nil {
+		t.Error("expected error from simulated tx.Get in DeleteEdge, got nil")
+	}
+	if _, err := fGetErr.SetGoalOrder(ctx, testUserID, SetGoalOrderRequest{SpaceID: testSpaceID, GoalIDs: []string{"g1"}}); err == nil {
+		t.Error("expected error from simulated tx.Get in SetGoalOrder, got nil")
+	}
+	if _, err := fGetErr.UpdateNode(ctx, testUserID, UpdateNodeRequest{SpaceID: testSpaceID, ID: "n1"}); err == nil {
+		t.Error("expected error from simulated tx.Get in UpdateNode, got nil")
+	}
+	if _, err := fGetErr.DeleteNode(ctx, testUserID, DeleteNodeRequest{SpaceID: testSpaceID, ID: "n1"}); err == nil {
+		t.Error("expected error from simulated tx.Get in DeleteNode, got nil")
+	}
+	if _, err := fGetErr.ApplyTemplate(ctx, testUserID, ApplyTemplateRequest{SpaceID: testSpaceID, TemplateID: TemplatePersonal}); err == nil {
+		t.Error("expected error from simulated tx.Get in ApplyTemplate, got nil")
+	}
+
+	// Simulated tx.Set error
+	dbSetErr := dbWrapper{
+		DB:     sneatcoretesting.NewMemoryDB(),
+		mockTx: mockTx{setErr: errors.New("simulated tx.Set failure")},
+	}
+	fSetErr := NewFacade(dbSetErr, &fakeIDGenerator{ids: []string{"n1"}}, membership)
+	if _, err := fSetErr.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"}); err == nil {
+		t.Error("expected error from simulated tx.Set, got nil")
+	}
+
+	// Workspace with nil Nodes initialized to empty map
+	dbNilNodes := dbWrapper{
+		DB:     sneatcoretesting.NewMemoryDB(),
+		mockTx: mockTx{nilNodes: true},
+	}
+	fNilNodes := NewFacade(dbNilNodes, &fakeIDGenerator{ids: []string{"n1"}}, membership)
+	if _, err := fNilNodes.CreateNode(ctx, testUserID, CreateNodeRequest{SpaceID: testSpaceID, Kind: models4prioritarius.NodeKindGoal, Title: "x"}); err != nil {
+		t.Errorf("nil nodes handling failed: %v", err)
 	}
 }
