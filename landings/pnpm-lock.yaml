@@ -10,6 +10,9 @@ overrides:
   js-yaml@3: ^3.15.2
   js-yaml@4: ^5.0.0
 
+patchedDependencies:
+  js-yaml@5.5.0: b1ae23c9ac600e592d4f582ebe8d90be4b014ce44d743df9dcb3b52d6419355f
+
 importers:
 
   .:
@@ -2302,7 +2305,7 @@ snapshots:
     dependencies:
       '@types/hast': 3.0.5
       '@types/mdast': 4.0.4
-      js-yaml: 5.5.0
+      js-yaml: 5.5.0(patch_hash=b1ae23c9ac600e592d4f582ebe8d90be4b014ce44d743df9dcb3b52d6419355f)
       picomatch: 4.0.5
       retext-smartypants: 6.2.0
       shiki: 4.4.2
@@ -3143,7 +3146,7 @@ snapshots:
       github-slugger: 2.0.0
       html-escaper: 3.0.3
       http-cache-semantics: 4.2.0
-      js-yaml: 5.5.0
+      js-yaml: 5.5.0(patch_hash=b1ae23c9ac600e592d4f582ebe8d90be4b014ce44d743df9dcb3b52d6419355f)
       jsonc-parser: 3.3.1
       magic-string: 1.1.0
       magicast: 0.5.4
@@ -3508,7 +3511,7 @@ snapshots:
 
   is-plain-obj@4.1.0: {}
 
-  js-yaml@5.5.0:
+  js-yaml@5.5.0(patch_hash=b1ae23c9ac600e592d4f582ebe8d90be4b014ce44d743df9dcb3b52d6419355f):
     dependencies:
       argparse: 3.0.3
 
