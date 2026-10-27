@@ -55,7 +55,7 @@ overrides:
   '@angular/core': 22.1.3
   '@angular/forms': 22.1.3
   '@angular/platform-browser': 22.1.3
-  '@angular/router': 22.1.3
+  '@angular/router': 22.2.1
   # Ionic fractures the same way, and less obviously: with two Ionic versions in
   # the tree pnpm instantiates @sneat/space-services TWICE at the SAME 0.24.0
   # version — same version, different peer resolution — and ModuleSpaceItemService
