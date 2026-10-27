@@ -1,4 +1,6 @@
 overrides:
+  esbuild: ^0.28.2
+  launch-editor: ^2.14.2
   # zone.js is already fully dropped here (no devDependency, no resolution
   # anywhere in the lockfile). This override is defense-in-depth for the
   # canonical extension template: @angular/core, @ionic/angular, and
@@ -13,49 +15,49 @@ overrides:
   # pulls a mismatched chokidar peer. Collapsing @angular-devkit/core to
   # whatever @angular/build itself depends on removes the fracture instead of
   # just papering over the chokidar peer warning.
-  '@angular-devkit/core': 22.1.5 # keep in sync with the @angular/build devDependency pin
-  '@angular-devkit/schematics': 22.1.5 # keep in sync with the @angular/build devDependency pin
-  '@angular/platform-server': 22.1.3
-  '@angular/platform-browser-dynamic': 22.1.3
-  '@sneat/api-firebase-auth': 0.26.4
-  '@sneat/api-public': 0.26.4
-  '@sneat/app-auth': 0.26.4
-  '@sneat/app-ionic': 0.26.4
-  '@sneat/app-public': 0.26.4
-  '@sneat/core-public': 0.26.4
-  '@sneat/extension-calendarius-internal': 0.26.4
-  '@sneat/extension-calendarius-shared': 0.26.4
-  '@sneat/space-nav-ionic': 0.26.4
-  '@sneat/space-nav-router': 0.26.4
+  '@angular-devkit/core': 22.2.1 # keep in sync with the @angular/build devDependency pin
+  '@angular-devkit/schematics': 22.2.1 # keep in sync with the @angular/build devDependency pin
+  '@angular/platform-server': 22.2.1
+  '@angular/platform-browser-dynamic': 22.2.1
+  '@sneat/api-firebase-auth': 0.27.45
+  '@sneat/api-public': 0.27.45
+  '@sneat/app-auth': 0.27.45
+  '@sneat/app-ionic': 0.27.45
+  '@sneat/app-public': 0.27.45
+  '@sneat/core-public': 0.27.45
+  '@sneat/extension-calendarius-internal': 0.27.2
+  '@sneat/extension-calendarius-shared': 0.27.2
+  '@sneat/space-nav-ionic': 0.27.45
+  '@sneat/space-nav-router': 0.27.45
   # @sneat/* framework libraries — all on the version this app depends on.
-  '@sneat/api': 0.26.4
-  '@sneat/app': 0.26.4
-  '@sneat/auth-core': 0.26.4
-  '@sneat/auth-models': 0.26.4
-  '@sneat/auth-ui': 0.26.4
-  '@sneat/components': 0.26.4
-  '@sneat/core': 0.26.4
-  '@sneat/data': 0.26.4
-  '@sneat/datagrid': 0.26.4
-  '@sneat/dto': 0.26.4
-  '@sneat/grid': 0.26.4
-  '@sneat/logging': 0.26.4
-  '@sneat/space-components': 0.26.4
-  '@sneat/space-models': 0.26.4
-  '@sneat/space-services': 0.26.4
-  '@sneat/ui': 0.26.4
-  '@sneat/wizard': 0.26.4
+  '@sneat/api': 0.27.45
+  '@sneat/app': 0.27.45
+  '@sneat/auth-core': 0.27.45
+  '@sneat/auth-models': 0.27.45
+  '@sneat/auth-ui': 0.27.45
+  '@sneat/components': 0.27.45
+  '@sneat/core': 0.27.45
+  '@sneat/data': 0.27.45
+  '@sneat/datagrid': 0.27.45
+  '@sneat/dto': 0.27.45
+  '@sneat/grid': 0.27.45
+  '@sneat/logging': 0.27.45
+  '@sneat/space-components': 0.27.45
+  '@sneat/space-models': 0.27.45
+  '@sneat/space-services': 0.27.45
+  '@sneat/ui': 0.27.45
+  '@sneat/wizard': 0.27.45
   # @angular/* runtime packages — the older extension peers pull 21.2.9, which
   # fractures HttpParams and friends against this app's 21.2.19. Also collapses
   # the second @angular/core variant that @angular/fire@20 ->
   # @angular/platform-browser-dynamic@20 -> @angular/compiler@20 used to drag in.
-  '@angular/animations': 22.1.3
-  '@angular/common': 22.1.3
-  '@angular/compiler': 22.1.3
-  '@angular/core': 22.1.3
-  '@angular/forms': 22.1.3
-  '@angular/platform-browser': 22.1.3
-  '@angular/router': 22.1.3
+  '@angular/animations': 22.2.1
+  '@angular/common': 22.2.1
+  '@angular/compiler': 22.2.1
+  '@angular/core': 22.2.1
+  '@angular/forms': 22.2.1
+  '@angular/platform-browser': 22.2.1
+  '@angular/router': 22.2.1
   # Ionic fractures the same way, and less obviously: with two Ionic versions in
   # the tree pnpm instantiates @sneat/space-services TWICE at the SAME 0.24.0
   # version — same version, different peer resolution — and ModuleSpaceItemService
@@ -74,15 +76,16 @@ overrides:
   '@babel/core': '>=7.29.6'
   '@vitest/ui': '>=4.1.0'
   form-data: '>=4.0.6'
-  vite: '>=7.3.5'
-  vitest: '>=4.1.0'
+  vite: '^7.3.7'
+  vitest: '^4.1.12'
   http-proxy-middleware: '>=3.0.7'
   'js-yaml@3': '^3.15.2'
   'js-yaml@4': '^4.3.2'
   postcss: '>=8.5.10'
   qs: '>=6.15.2'
   tmp: '>=0.2.7'
-  undici: '>=7.28.0'
+  'undici@7': '^7.30.1'
+  'undici@8': '^8.12.2'
   uuid: '>=11.1.1'
   webpack-dev-server: '>=5.2.5'
 # Bound workspace-member discovery to the real source packages (root + libs).
