@@ -1,4 +1,5 @@
 import { appRoutes } from './app.routes';
+import { sneatAuthGuard } from '@sneat/auth-core';
 
 describe('appRoutes', () => {
   it('forwards the root path to /home instead of rendering there', () => {
@@ -14,8 +15,7 @@ describe('appRoutes', () => {
   it('serves the authenticated home component at /home, guarded', () => {
     const home = appRoutes.find((r) => r.path === 'home');
     expect(typeof home?.loadComponent).toBe('function');
-    expect(home?.canActivate?.length).toBeGreaterThan(0);
-    expect(typeof home?.data?.['authGuardPipe']).toBe('function');
+    expect(home?.canActivate).toContain(sneatAuthGuard);
   });
 
   it('mounts the space-scoped routes lazily', () => {

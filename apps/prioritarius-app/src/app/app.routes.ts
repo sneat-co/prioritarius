@@ -1,6 +1,5 @@
 import { Route } from '@angular/router';
-import { AuthGuard } from '@angular/fire/auth-guard';
-import { redirectToLoginIfNotSignedIn } from '@sneat/auth-core';
+import { sneatAuthGuard } from '@sneat/auth-core';
 
 export const appRoutes: Route[] = [
   {
@@ -20,8 +19,7 @@ export const appRoutes: Route[] = [
       import('./home/prioritarius-home-page.component').then(
         (m) => m.PrioritariusHomePageComponent,
       ),
-    canActivate: [AuthGuard],
-    data: { authGuardPipe: () => redirectToLoginIfNotSignedIn },
+    canActivate: [sneatAuthGuard],
   },
   {
     // Space-scoped routes host the template pages, mirroring sneat-app's
@@ -47,10 +45,9 @@ export const appRoutes: Route[] = [
       import('./my/my-profile-page.component').then(
         (m) => m.MyProfilePageComponent,
       ),
-    canActivate: [AuthGuard],
+    canActivate: [sneatAuthGuard],
     data: {
       title: 'My profile',
-      authGuardPipe: () => redirectToLoginIfNotSignedIn,
     },
   },
 ];
