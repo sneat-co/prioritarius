@@ -120,13 +120,16 @@ function wrapApiError(error: unknown): Error {
  */
 @Injectable({ providedIn: 'root' })
 export class PrioritariusWorkspaceStore {
-  private readonly firestore = inject(Firestore);
+  private readonly firestore = inject(Firestore, { optional: true });
   private readonly api = inject(SneatApiService);
 
   /** A missing document (a Space with no Prioritarius data yet) means an
    * empty workspace, not an error — `assembleWorkspace(undefined)` returns
    * one. */
   watchWorkspace(spaceID: string): Observable<Workspace> {
+    if (!this.firestore) {
+      throw new Error('Firestore provider is required for watchWorkspace');
+    }
     const doc$ = docData(
       doc(this.firestore, workspaceDocPath(spaceID)),
     ) as unknown as Observable<IPrioritariusWorkspaceDbo | undefined>;
