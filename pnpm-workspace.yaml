@@ -15,10 +15,10 @@ overrides:
   # pulls a mismatched chokidar peer. Collapsing @angular-devkit/core to
   # whatever @angular/build itself depends on removes the fracture instead of
   # just papering over the chokidar peer warning.
-  '@angular-devkit/core': 22.2.5 # keep in sync with the @angular/build devDependency pin
-  '@angular-devkit/schematics': 22.2.5 # keep in sync with the @angular/build devDependency pin
-  '@angular/platform-server': 22.2.4
-  '@angular/platform-browser-dynamic': 22.2.4
+  '@angular-devkit/core': 22.2.6 # keep in sync with the @angular/build devDependency pin
+  '@angular-devkit/schematics': 22.2.6 # keep in sync with the @angular/build devDependency pin
+  '@angular/platform-server': 22.2.5
+  '@angular/platform-browser-dynamic': 22.2.5
   '@sneat/api-firebase-auth': 0.27.51
   '@sneat/api-public': 0.27.51
   '@sneat/app-auth': 0.27.51
@@ -51,13 +51,13 @@ overrides:
   # fractures HttpParams and friends against this app's 21.2.19. Also collapses
   # the second @angular/core variant that @angular/fire@20 ->
   # @angular/platform-browser-dynamic@20 -> @angular/compiler@20 used to drag in.
-  '@angular/animations': 22.2.4
-  '@angular/common': 22.2.4
-  '@angular/compiler': 22.2.4
-  '@angular/core': 22.2.4
-  '@angular/forms': 22.2.4
-  '@angular/platform-browser': 22.2.4
-  '@angular/router': 22.2.4
+  '@angular/animations': 22.2.5
+  '@angular/common': 22.2.5
+  '@angular/compiler': 22.2.5
+  '@angular/core': 22.2.5
+  '@angular/forms': 22.2.5
+  '@angular/platform-browser': 22.2.5
+  '@angular/router': 22.2.5
   # Ionic fractures the same way, and less obviously: with two Ionic versions in
   # the tree pnpm instantiates @sneat/space-services TWICE at the SAME 0.24.0
   # version — same version, different peer resolution — and ModuleSpaceItemService
