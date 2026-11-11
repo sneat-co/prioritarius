@@ -7,7 +7,7 @@ toolchain go1.27.3
 require (
 	github.com/dal-go/dalgo v0.102.2
 	github.com/dal-go/record v0.1.5
-	github.com/sneat-co/sneat-go-core v0.77.4
+	github.com/sneat-co/sneat-go-core v0.78.0
 )
 
 require (
